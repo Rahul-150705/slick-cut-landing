@@ -25,8 +25,8 @@ const Navbar = () => {
           <Link to="/" className="flex items-center gap-2 group">
             <Scissors className="w-8 h-8 text-primary transition-transform group-hover:rotate-12" />
             <div>
-              <h1 className="text-2xl font-bold text-foreground">California Barber Shop</h1>
-              <p className="text-xs text-primary font-medium">Premium Barbershop</p>
+              <h1 className="text-2xl font-bold text-foreground">Cali BarberShop</h1>
+              <p className="text-xs text-primary font-medium">Vintage Barbershop</p>
             </div>
           </Link>
 
