@@ -104,6 +104,14 @@ const Appointment = () => {
     }
   };
 
+  // Helper to format Date in YYYY-MM-DD local
+  const formatDate = (date: Date) => {
+    const year = date.getFullYear();
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    const day = date.getDate().toString().padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
   // Filter available times for selected date
   const availableTimes = timeSlots.filter(time => {
     if (!formData.date) return true;
@@ -112,7 +120,7 @@ const Appointment = () => {
     const selectedDate = new Date(formData.date);
 
     // Disable past times for today
-    if (selectedDate.toDateString() === now.toDateString()) {
+    if (formatDate(selectedDate) === formatDate(now)) {
       const [hourStr, minutePart] = time.split(':');
       const minute = parseInt(minutePart);
       const ampm = time.split(' ')[1];
@@ -175,7 +183,7 @@ const Appointment = () => {
               <DayPicker
                 mode="single"
                 selected={formData.date ? new Date(formData.date) : undefined}
-                onSelect={date => setFormData({ ...formData, date: date ? date.toISOString().split('T')[0] : '' })}
+                onSelect={date => setFormData({ ...formData, date: date ? formatDate(date) : '' })}
                 disabled={[{ before: new Date() }, ...disabledDays]}
                 className="bg-card border border-border rounded-md p-2 mt-2 text-foreground shadow-sm"
               />
