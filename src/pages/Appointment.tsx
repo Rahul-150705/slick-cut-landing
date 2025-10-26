@@ -1,198 +1,96 @@
-import { useState, useEffect } from 'react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useToast } from '@/hooks/use-toast';
-import { Calendar, Clock, Scissors } from 'lucide-react';
-import { DayPicker } from 'react-day-picker';
-import 'react-day-picker/dist/style.css';
+import { useEffect, useState } from "react";
+import { DayPicker } from "react-day-picker";
+import "react-day-picker/dist/style.css";
 
-const SHEET_URL = 'https://api.sheetbest.com/sheets/c7191ac9-a4f6-474f-bb74-d74d7de28566';
+// Example function to fetch booked slots from Google Sheets
+// Replace this with your actual fetch function
+async function fetchBookedSlotsFromSheet(): Promise<{ [key: string]: string[] }> {
+  // Example response: { "2025-10-26": ["9:00 AM", "9:30 AM"] }
+  return {}; 
+}
 
 const Appointment = () => {
-  const { toast } = useToast();
-  const [loading, setLoading] = useState(false);
-  const [bookedAppointments, setBookedAppointments] = useState<any[]>([]);
-  const [formData, setFormData] = useState({
-    name: '',
-    phone: '',
-    email: '',
-    date: '',
-    time: '',
-    service: '',
-    notes: '',
-  });
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date()); // Default today
+  const [bookedSlots, setBookedSlots] = useState<{ [key: string]: string[] }>({});
+  const [availableSlots, setAvailableSlots] = useState<string[]>([]);
 
-  const services = [
-    'Signature Haircut',
-    'Fade & Taper',
-    'Beard Grooming',
-    'Hot Towel Shave',
-    'Kids Cut',
-    'Haircut & Beard Combo',
-  ];
+  const generateSlots = () => {
+    const slots: string[] = [];
+    for (let hour = 9; hour <= 19; hour++) {
+      if (hour === 12) continue; // skip lunch
+      const displayHour = hour > 12 ? hour - 12 : hour;
+      const ampm = hour < 12 ? "AM" : "PM";
+      slots.push(`${displayHour}:00 ${ampm}`);
+      slots.push(`${displayHour}:30 ${ampm}`);
+    }
+    return slots;
+  };
 
-  const timeSlots = [
-    '9:00 AM', '10:00 AM', '11:00 AM', '12:00 PM',
-    '1:00 PM', '2:00 PM', '3:00 PM', '4:00 PM',
-    '5:00 PM', '6:00 PM',
-  ];
+  const allSlots = generateSlots();
 
-  // Fetch booked appointments
   useEffect(() => {
-    fetch(SHEET_URL)
-      .then(res => res.json())
-      .then(data => setBookedAppointments(data))
-      .catch(err => console.error(err));
+    // Fetch booked slots from Google Sheets
+    fetchBookedSlotsFromSheet().then((data) => setBookedSlots(data));
   }, []);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!formData.name || !formData.phone || !formData.date || !formData.time || !formData.service) {
-      toast({
-        title: 'Missing Information',
-        description: 'Please fill in all required fields',
-        variant: 'destructive',
-      });
+  useEffect(() => {
+    const dateKey = selectedDate.toDateString();
+    const booked = bookedSlots[dateKey] || [];
+    setAvailableSlots(allSlots.filter((slot) => !booked.includes(slot)));
+  }, [selectedDate, bookedSlots]);
+
+  const handleSelectDate = (day: Date | undefined) => {
+    if (!day) return;
+
+    const today = new Date();
+    const selected = new Date(day.getFullYear(), day.getMonth(), day.getDate());
+    const now = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+
+    if (selected < now) {
+      alert("Cannot select a past date!");
       return;
     }
 
-    setLoading(true);
-    try {
-      await fetch(SHEET_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
-      });
-
-      toast({
-        title: 'Appointment Booked!',
-        description: 'We’ll contact you shortly to confirm your slot.',
-      });
-
-      setFormData({
-        name: '',
-        phone: '',
-        email: '',
-        date: '',
-        time: '',
-        service: '',
-        notes: '',
-      });
-
-      const updated = await fetch(SHEET_URL).then(res => res.json());
-      setBookedAppointments(updated);
-
-    } catch (error) {
-      console.error(error);
-      toast({
-        title: 'Error',
-        description: 'Failed to submit appointment. Please try again later.',
-        variant: 'destructive',
-      });
-    } finally {
-      setLoading(false);
-    }
+    setSelectedDate(day);
   };
 
-  // Filter available times for selected date
-  const availableTimes = timeSlots.filter(time => {
-    if (!formData.date) return true;
-
-    const now = new Date();
-    const selectedDate = new Date(formData.date);
-
-    // Disable past times for today
-    if (selectedDate.toDateString() === now.toDateString()) {
-      const [hourStr, minutePart] = time.split(':');
-      const minute = parseInt(minutePart);
-      const ampm = time.split(' ')[1];
-      let hour = parseInt(hourStr);
-      if (ampm === 'PM' && hour !== 12) hour += 12;
-      if (ampm === 'AM' && hour === 12) hour = 0;
-
-      if (hour < now.getHours() || (hour === now.getHours() && minute <= now.getMinutes())) {
-        return false;
-      }
-    }
-
-    // Disable already booked times
-    return !bookedAppointments.some(
-      booking => booking.date === formData.date && booking.time === time
-    );
-  });
-
-  // Compute disabled days for DayPicker
-  const disabledDays = bookedAppointments.map(b => new Date(b.date));
+  const handleBookSlot = (slot: string) => {
+    const dateKey = selectedDate.toDateString();
+    setBookedSlots((prev) => ({
+      ...prev,
+      [dateKey]: [...(prev[dateKey] || []), slot],
+    }));
+    setAvailableSlots((prev) => prev.filter((s) => s !== slot));
+    alert(`Slot ${slot} booked for ${dateKey}`);
+  };
 
   return (
-    <div className="min-h-screen pt-20">
-      <section className="py-20 bg-secondary">
-        <div className="container mx-auto px-4 text-center animate-fade-in">
-          <Scissors className="w-16 h-16 text-primary mx-auto mb-6" />
-          <h1 className="text-5xl md:text-6xl font-bold text-foreground mb-6">Book Your Appointment</h1>
-          <p className="text-xl text-muted-foreground">Schedule your visit and experience premium grooming</p>
-        </div>
-      </section>
+    <div className="p-4 max-w-xl mx-auto">
+      <h1 className="text-2xl font-bold mb-4">Book an Appointment</h1>
 
-      <section className="py-20 bg-background">
-        <div className="container mx-auto px-4 max-w-2xl">
-          <form onSubmit={handleSubmit} className="bg-card border border-border rounded-lg p-8 animate-fade-in space-y-6">
-            <div>
-              <Label htmlFor="name">Full Name *</Label>
-              <Input id="name" type="text" placeholder="John Doe" value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} required className="mt-2"/>
-            </div>
+      <DayPicker
+        mode="single"
+        selected={selectedDate}
+        onSelect={handleSelectDate}
+        disabled={{ before: new Date() }}
+      />
 
-            <div>
-              <Label htmlFor="phone">Phone Number *</Label>
-              <Input id="phone" type="tel" placeholder="(123) 456-7890" value={formData.phone} onChange={e => setFormData({ ...formData, phone: e.target.value })} required className="mt-2"/>
-            </div>
-
-            <div>
-              <Label htmlFor="email">Email (Optional)</Label>
-              <Input id="email" type="email" placeholder="john@example.com" value={formData.email} onChange={e => setFormData({ ...formData, email: e.target.value })} className="mt-2"/>
-            </div>
-
-            <div>
-              <Label htmlFor="service">Service *</Label>
-              <Select value={formData.service} onValueChange={value => setFormData({ ...formData, service: value })}>
-                <SelectTrigger className="mt-2"><SelectValue placeholder="Select a service" /></SelectTrigger>
-                <SelectContent>{services.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
-              </Select>
-            </div>
-
-            <div>
-              <Label className="flex items-center gap-2"><Calendar className="w-4 h-4"/> Preferred Date *</Label>
-              <DayPicker
-                mode="single"
-                selected={formData.date ? new Date(formData.date) : undefined}
-                onSelect={date => setFormData({ ...formData, date: date ? date.toISOString().split('T')[0] : '' })}
-                disabled={[{ before: new Date() }, ...disabledDays]}
-                className="bg-card border border-border rounded-md p-2 mt-2 text-foreground shadow-sm"
-              />
-            </div>
-
-            <div>
-              <Label className="flex items-center gap-2"><Clock className="w-4 h-4"/> Preferred Time *</Label>
-              <Select value={formData.time} onValueChange={value => setFormData({ ...formData, time: value })}>
-                <SelectTrigger className="mt-2"><SelectValue placeholder={availableTimes.length ? "Select time" : "No available time"} /></SelectTrigger>
-                <SelectContent>{availableTimes.map(time => <SelectItem key={time} value={time}>{time}</SelectItem>)}</SelectContent>
-              </Select>
-            </div>
-
-            <div>
-              <Label htmlFor="notes">Special Requests (Optional)</Label>
-              <Textarea id="notes" placeholder="Any specific requests or notes..." value={formData.notes} onChange={e => setFormData({ ...formData, notes: e.target.value })} rows={4} className="mt-2"/>
-            </div>
-
-            <Button type="submit" size="lg" disabled={loading || availableTimes.length === 0} className="w-full bg-primary text-primary-foreground hover:bg-primary/90 font-semibold">
-              {loading ? 'Submitting...' : 'Request Appointment'}
-            </Button>
-          </form>
-        </div>
-      </section>
+      <h2 className="text-xl font-semibold mt-4">Available Slots</h2>
+      <div className="grid grid-cols-3 gap-2 mt-2">
+        {availableSlots.length > 0 ? (
+          availableSlots.map((slot) => (
+            <button
+              key={slot}
+              onClick={() => handleBookSlot(slot)}
+              className="py-2 px-3 bg-blue-500 text-white rounded hover:bg-blue-600"
+            >
+              {slot}
+            </button>
+          ))
+        ) : (
+          <p className="col-span-3 text-center text-gray-500">No slots available</p>
+        )}
+      </div>
     </div>
   );
 };
