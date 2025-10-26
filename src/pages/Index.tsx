@@ -1,17 +1,11 @@
+// Update this page (the content is just a fallback if you fail to update the page)
+
 const Index = () => {
   return (
     <div className="flex min-h-screen items-center justify-center bg-background">
-      <div className="text-center max-w-2xl px-4">
-        <h1 className="mb-4 text-5xl font-extrabold text-foreground">
-          Welcome to <span className="text-primary">California Barber Shop</span>
-        </h1>
-        <p className="text-xl text-muted-foreground mb-6">
-          Experience premium grooming with a modern touch.  
-          At <strong>California Barber Shop</strong>, every cut is crafted to perfection.
-        </p>
-        <p className="text-lg text-muted-foreground">
-          Explore our services, book your appointment, and step into a world of style and confidence.
-        </p>
+      <div className="text-center">
+        <h1 className="mb-4 text-4xl font-bold">Welcome to Your Blank App</h1>
+        <p className="text-xl text-muted-foreground">Start building your amazing project here!</p>
       </div>
     </div>
   );

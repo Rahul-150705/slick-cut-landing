@@ -25,7 +25,7 @@ const About = () => {
           <div className="max-w-4xl mx-auto">
             <div className="prose prose-lg prose-invert max-w-none animate-fade-in">
               <p className="text-lg text-muted-foreground mb-6">
-                California Barbershop was founded with a simple vision: to create a sanctuary where men can experience the timeless art of traditional barbering combined with contemporary style and service.
+                Elite Cuts Barbershop was founded with a simple vision: to create a sanctuary where men can experience the timeless art of traditional barbering combined with contemporary style and service.
               </p>
               
               <p className="text-lg text-muted-foreground mb-6">
@@ -37,7 +37,7 @@ const About = () => {
               </p>
 
               <p className="text-lg text-muted-foreground">
-                At California Barber Shop, we're not just creating great looks – we're building lasting relationships with our clients and contributing to the confidence of our community, one haircut at a time.
+                At Elite Cuts, we're not just creating great looks – we're building lasting relationships with our clients and contributing to the confidence of our community, one haircut at a time.
               </p>
             </div>
           </div>

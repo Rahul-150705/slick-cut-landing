@@ -68,7 +68,8 @@ const Home = () => {
         <div className="container mx-auto px-4 z-10 text-center md:text-left">
           <div className="max-w-2xl animate-fade-in">
             <h1 className="text-5xl md:text-7xl font-bold mb-6 text-foreground">
-              Welcome to <span className="text-primary block">California Barber Shop</span>
+              Crafting Confidence,
+              <span className="text-primary block">One Cut at a Time</span>
             </h1>
             <p className="text-xl text-muted-foreground mb-8">
               Experience premium grooming in a luxury setting. Where tradition meets modern style.
@@ -142,7 +143,7 @@ const Home = () => {
               What Our Clients Say
             </h2>
             <p className="text-xl text-muted-foreground">
-              Hear from our valued customers at California Barber Shop
+              Don't just take our word for it
             </p>
           </div>
 
@@ -164,7 +165,7 @@ const Home = () => {
               Ready for a Fresh Look?
             </h2>
             <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
-              Book your appointment today and experience the <strong>California Barber Shop</strong> difference.
+              Book your appointment today and experience the Elite Cuts difference
             </p>
             <Link to="/appointment">
               <Button size="lg" className="bg-primary text-primary-foreground hover:bg-primary/90 font-semibold text-lg px-8 py-6">
