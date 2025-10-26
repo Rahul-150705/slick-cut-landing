@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -6,10 +6,15 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { Calendar, Clock, Scissors } from 'lucide-react';
+import DatePicker from 'react-datepicker';
+import 'react-datepicker/dist/react-datepicker.css';
+
+const SHEET_URL = 'https://api.sheetbest.com/sheets/c7191ac9-a4f6-474f-bb74-d74d7de28566';
 
 const Appointment = () => {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
+  const [bookedAppointments, setBookedAppointments] = useState<any[]>([]);
   const [formData, setFormData] = useState({
     name: '',
     phone: '',
@@ -35,9 +40,17 @@ const Appointment = () => {
     '5:00 PM', '6:00 PM',
   ];
 
+  // Fetch booked appointments
+  useEffect(() => {
+    fetch(SHEET_URL)
+      .then(res => res.json())
+      .then(data => setBookedAppointments(data))
+      .catch(err => console.error(err));
+  }, []);
+
+  // Handle form submission
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
     if (!formData.name || !formData.phone || !formData.date || !formData.time || !formData.service) {
       toast({
         title: 'Missing Information',
@@ -48,11 +61,7 @@ const Appointment = () => {
     }
 
     setLoading(true);
-
     try {
-
-      const SHEET_URL = 'https://api.sheetbest.com/sheets/c7191ac9-a4f6-474f-bb74-d74d7de28566';
-
       await fetch(SHEET_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -74,6 +83,11 @@ const Appointment = () => {
         service: '',
         notes: '',
       });
+
+      // Refresh booked appointments
+      const updated = await fetch(SHEET_URL).then(res => res.json());
+      setBookedAppointments(updated);
+
     } catch (error) {
       console.error(error);
       toast({
@@ -85,6 +99,33 @@ const Appointment = () => {
       setLoading(false);
     }
   };
+
+  // Filter available times for selected date
+  const availableTimes = timeSlots.filter(time => {
+    if (!formData.date) return true;
+
+    const now = new Date();
+    const selectedDate = new Date(formData.date);
+
+    // Disable past times for today
+    if (selectedDate.toDateString() === now.toDateString()) {
+      const [hourStr, minutePart] = time.split(':');
+      const minute = parseInt(minutePart);
+      const ampm = time.split(' ')[1];
+      let hour = parseInt(hourStr);
+      if (ampm === 'PM' && hour !== 12) hour += 12;
+      if (ampm === 'AM' && hour === 12) hour = 0;
+
+      if (hour < now.getHours() || (hour === now.getHours() && minute <= now.getMinutes())) {
+        return false;
+      }
+    }
+
+    // Disable already booked times for that date
+    return !bookedAppointments.some(
+      booking => booking.date === formData.date && booking.time === time
+    );
+  });
 
   return (
     <div className="min-h-screen pt-20">
@@ -167,41 +208,42 @@ const Appointment = () => {
                   </Select>
                 </div>
 
-                {/* Date and Time */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <Label htmlFor="date" className="flex items-center gap-2">
-                      <Calendar className="w-4 h-4" />
-                      Preferred Date *
-                    </Label>
-                    <Input
-                      id="date"
-                      type="date"
-                      value={formData.date}
-                      onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-                      className="mt-2"
-                      required
-                    />
-                  </div>
+                {/* Date */}
+                <div>
+                  <Label htmlFor="date" className="flex items-center gap-2">
+                    <Calendar className="w-4 h-4" />
+                    Preferred Date *
+                  </Label>
+                  <DatePicker
+                    selected={formData.date ? new Date(formData.date) : null}
+                    onChange={(date: Date) => setFormData({ ...formData, date: date?.toISOString().split('T')[0] || '' })}
+                    minDate={new Date()}
+                    filterDate={(date) => {
+                      const dateStr = date.toISOString().split('T')[0];
+                      return !bookedAppointments.some(booking => booking.date === dateStr);
+                    }}
+                    dateFormat="yyyy-MM-dd"
+                    placeholderText="Select a date"
+                    className="mt-2 w-full"
+                  />
+                </div>
 
-                  <div>
-                    <Label htmlFor="time" className="flex items-center gap-2">
-                      <Clock className="w-4 h-4" />
-                      Preferred Time *
-                    </Label>
-                    <Select value={formData.time} onValueChange={(value) => setFormData({ ...formData, time: value })}>
-                      <SelectTrigger className="mt-2">
-                        <SelectValue placeholder="Select time" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {timeSlots.map((time) => (
-                          <SelectItem key={time} value={time}>
-                            {time}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
+                {/* Time */}
+                <div>
+                  <Label htmlFor="time" className="flex items-center gap-2">
+                    <Clock className="w-4 h-4" />
+                    Preferred Time *
+                  </Label>
+                  <Select value={formData.time} onValueChange={(value) => setFormData({ ...formData, time: value })}>
+                    <SelectTrigger className="mt-2">
+                      <SelectValue placeholder="Select time" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {availableTimes.map((time) => (
+                        <SelectItem key={time} value={time}>{time}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 {/* Notes */}
@@ -217,7 +259,7 @@ const Appointment = () => {
                   />
                 </div>
 
-                {/* Submit Button */}
+                {/* Submit */}
                 <Button
                   type="submit"
                   size="lg"
