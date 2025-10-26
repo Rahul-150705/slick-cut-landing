@@ -11,7 +11,7 @@ const Footer = () => {
             <div className="flex items-center gap-2 mb-4">
               <Scissors className="w-8 h-8 text-primary" />
               <div>
-                <h3 className="text-xl font-bold text-foreground">California BarberShop</h3>
+                <h3 className="text-xl font-bold text-foreground">Elite Cuts</h3>
                 <p className="text-xs text-primary font-medium">Premium Barbershop</p>
               </div>
             </div>
@@ -92,7 +92,7 @@ const Footer = () => {
         </div>
 
         <div className="border-t border-border mt-8 pt-8 text-center text-sm text-muted-foreground">
-          <p>&copy; {new Date().getFullYear()} California Barbershop. All rights reserved.</p>
+          <p>&copy; {new Date().getFullYear()} Elite Cuts Barbershop. All rights reserved.</p>
         </div>
       </div>
     </footer>
