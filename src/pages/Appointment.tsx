@@ -5,7 +5,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { Calendar as CalendarIcon, Clock, Scissors } from 'lucide-react';
+import { Calendar, Clock, Scissors } from 'lucide-react';
 import { DayPicker } from 'react-day-picker';
 import 'react-day-picker/dist/style.css';
 
@@ -46,7 +46,7 @@ const Appointment = () => {
     '4:00 PM', '4:30 PM',
     '5:00 PM', '5:30 PM',
     '6:00 PM', '6:30 PM',
-  ];
+];
 
   // Fetch booked appointments
   useEffect(() => {
@@ -55,13 +55,6 @@ const Appointment = () => {
       .then(data => setBookedAppointments(data))
       .catch(err => console.error(err));
   }, []);
-
-  const formatDate = (date: Date) => {
-    const year = date.getFullYear();
-    const month = (date.getMonth() + 1).toString().padStart(2, '0');
-    const day = date.getDate().toString().padStart(2, '0');
-    return `${year}-${month}-${day}`;
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -79,10 +72,7 @@ const Appointment = () => {
       await fetch(SHEET_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...formData,
-          date: formData.date, // send visible YYYY-MM-DD to Google Sheets
-        }),
+        body: JSON.stringify(formData),
       });
 
       toast({
@@ -102,6 +92,7 @@ const Appointment = () => {
 
       const updated = await fetch(SHEET_URL).then(res => res.json());
       setBookedAppointments(updated);
+
     } catch (error) {
       console.error(error);
       toast({
@@ -111,8 +102,15 @@ const Appointment = () => {
       });
     } finally {
       setLoading(false);
-      setShowCalendar(false);
     }
+  };
+
+  // Helper to format Date in YYYY-MM-DD local
+  const formatDate = (date: Date) => {
+    const year = date.getFullYear();
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    const day = date.getDate().toString().padStart(2, '0');
+    return `${year}-${month}-${day}`;
   };
 
   // Filter available times for selected date
@@ -122,6 +120,7 @@ const Appointment = () => {
     const now = new Date();
     const selectedDate = new Date(formData.date);
 
+    // Disable past times for today
     if (formatDate(selectedDate) === formatDate(now)) {
       const [hourStr, minutePart] = time.split(':');
       const minute = parseInt(minutePart);
@@ -135,11 +134,13 @@ const Appointment = () => {
       }
     }
 
+    // Disable already booked times
     return !bookedAppointments.some(
       booking => booking.date === formData.date && booking.time === time
     );
   });
 
+  // Compute disabled days for DayPicker
   const disabledDays = bookedAppointments.map(b => new Date(b.date));
 
   return (
@@ -195,21 +196,23 @@ const Appointment = () => {
 
             <div>
               <Label htmlFor="service">Service *</Label>
-              <Select value={formData.service} onValueChange={value => setFormData({ ...formData, service: value })}>
+              <Select
+                value={formData.service}
+                onValueChange={value => setFormData({ ...formData, service: value })}
+              >
                 <SelectTrigger className="mt-2">
                   <SelectValue placeholder="Select a service" />
                 </SelectTrigger>
                 <SelectContent>
-                  {services.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                  {services.map(s => (
+                    <SelectItem key={s} value={s}>{s}</SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
 
-            {/* Date input with inline calendar */}
             <div>
-              <Label className="flex items-center gap-2">
-                <CalendarIcon className="w-4 h-4"/> Preferred Date *
-              </Label>
+              <Label className="flex items-center gap-2"><Calendar className="w-4 h-4"/> Preferred Date *</Label>
               <div className="flex items-center gap-2 mt-2">
                 <Input
                   type="text"
@@ -219,7 +222,7 @@ const Appointment = () => {
                   required
                 />
                 <Button type="button" onClick={() => setShowCalendar(prev => !prev)}>
-                  <CalendarIcon className="w-5 h-5" />
+                  <Calendar className="w-5 h-5" />
                 </Button>
               </div>
               {showCalendar && (
@@ -236,12 +239,17 @@ const Appointment = () => {
 
             <div>
               <Label className="flex items-center gap-2"><Clock className="w-4 h-4"/> Preferred Time *</Label>
-              <Select value={formData.time} onValueChange={value => setFormData({ ...formData, time: value })}>
+              <Select
+                value={formData.time}
+                onValueChange={value => setFormData({ ...formData, time: value })}
+              >
                 <SelectTrigger className="mt-2">
                   <SelectValue placeholder={availableTimes.length ? "Select time" : "No available time"} />
                 </SelectTrigger>
                 <SelectContent>
-                  {availableTimes.map(time => <SelectItem key={time} value={time}>{time}</SelectItem>)}
+                  {availableTimes.map(time => (
+                    <SelectItem key={time} value={time}>{time}</SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
