@@ -45,7 +45,7 @@ const Appointment = () => {
     '4:00 PM', '4:30 PM',
     '5:00 PM', '5:30 PM',
     '6:00 PM', '6:30 PM',
-];
+  ];
 
   // Fetch booked appointments
   useEffect(() => {
@@ -68,10 +68,16 @@ const Appointment = () => {
 
     setLoading(true);
     try {
+      // Convert date to ISO so it is visible in Google Sheets
+      const dateISO = new Date(formData.date).toISOString();
+
       await fetch(SHEET_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({
+          ...formData,
+          date: dateISO, // send ISO date
+        }),
       });
 
       toast({
@@ -135,11 +141,10 @@ const Appointment = () => {
 
     // Disable already booked times
     return !bookedAppointments.some(
-      booking => booking.date === formData.date && booking.time === time
+      booking => booking.date.split('T')[0] === formData.date && booking.time === time
     );
   });
 
-  // Compute disabled days for DayPicker
   const disabledDays = bookedAppointments.map(b => new Date(b.date));
 
   return (
