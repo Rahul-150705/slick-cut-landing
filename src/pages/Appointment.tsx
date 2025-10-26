@@ -6,8 +6,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { Calendar, Clock, Scissors } from 'lucide-react';
-import DatePicker from 'react-datepicker';
-import 'react-datepicker/dist/react-datepicker.css';
+import { DayPicker } from 'react-day-picker';
+import 'react-day-picker/dist/style.css';
 
 const SHEET_URL = 'https://api.sheetbest.com/sheets/c7191ac9-a4f6-474f-bb74-d74d7de28566';
 
@@ -48,7 +48,6 @@ const Appointment = () => {
       .catch(err => console.error(err));
   }, []);
 
-  // Handle form submission
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.name || !formData.phone || !formData.date || !formData.time || !formData.service) {
@@ -62,10 +61,15 @@ const Appointment = () => {
 
     setLoading(true);
     try {
+      const payload = {
+        ...formData,
+        date: formData.date, // Already YYYY-MM-DD
+      };
+
       await fetch(SHEET_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(payload),
       });
 
       toast({
@@ -73,7 +77,6 @@ const Appointment = () => {
         description: 'We’ll contact you shortly to confirm your slot.',
       });
 
-      // Reset form
       setFormData({
         name: '',
         phone: '',
@@ -84,7 +87,6 @@ const Appointment = () => {
         notes: '',
       });
 
-      // Refresh booked appointments
       const updated = await fetch(SHEET_URL).then(res => res.json());
       setBookedAppointments(updated);
 
@@ -121,175 +123,140 @@ const Appointment = () => {
       }
     }
 
-    // Disable already booked times for that date
+    // Disable already booked times
     return !bookedAppointments.some(
       booking => booking.date === formData.date && booking.time === time
     );
   });
 
+  // Compute disabled days for DayPicker
+  const disabledDays = bookedAppointments.map(b => new Date(b.date));
+  
   return (
     <div className="min-h-screen pt-20">
-      {/* Hero Section */}
+      {/* Hero */}
       <section className="py-20 bg-secondary">
-        <div className="container mx-auto px-4">
-          <div className="max-w-3xl mx-auto text-center animate-fade-in">
-            <Scissors className="w-16 h-16 text-primary mx-auto mb-6" />
-            <h1 className="text-5xl md:text-6xl font-bold text-foreground mb-6">
-              Book Your Appointment
-            </h1>
-            <p className="text-xl text-muted-foreground">
-              Schedule your visit and experience premium grooming
-            </p>
-          </div>
+        <div className="container mx-auto px-4 text-center animate-fade-in">
+          <Scissors className="w-16 h-16 text-primary mx-auto mb-6" />
+          <h1 className="text-5xl md:text-6xl font-bold text-foreground mb-6">
+            Book Your Appointment
+          </h1>
+          <p className="text-xl text-muted-foreground">
+            Schedule your visit and experience premium grooming
+          </p>
         </div>
       </section>
 
-      {/* Form Section */}
+      {/* Form */}
       <section className="py-20 bg-background">
-        <div className="container mx-auto px-4">
-          <div className="max-w-2xl mx-auto">
-            <form onSubmit={handleSubmit} className="bg-card border border-border rounded-lg p-8 animate-fade-in">
-              <div className="space-y-6">
-                {/* Name */}
-                <div>
-                  <Label htmlFor="name">Full Name *</Label>
-                  <Input
-                    id="name"
-                    type="text"
-                    placeholder="John Doe"
-                    value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    className="mt-2"
-                    required
-                  />
-                </div>
+        <div className="container mx-auto px-4 max-w-2xl">
+          <form onSubmit={handleSubmit} className="bg-card border border-border rounded-lg p-8 animate-fade-in space-y-6">
 
-                {/* Phone */}
-                <div>
-                  <Label htmlFor="phone">Phone Number *</Label>
-                  <Input
-                    id="phone"
-                    type="tel"
-                    placeholder="(123) 456-7890"
-                    value={formData.phone}
-                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                    className="mt-2"
-                    required
-                  />
-                </div>
-
-                {/* Email */}
-                <div>
-                  <Label htmlFor="email">Email (Optional)</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    placeholder="john@example.com"
-                    value={formData.email}
-                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                    className="mt-2"
-                  />
-                </div>
-
-                {/* Service */}
-                <div>
-                  <Label htmlFor="service">Service *</Label>
-                  <Select value={formData.service} onValueChange={(value) => setFormData({ ...formData, service: value })}>
-                    <SelectTrigger className="mt-2">
-                      <SelectValue placeholder="Select a service" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {services.map((service) => (
-                        <SelectItem key={service} value={service}>
-                          {service}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                {/* Date */}
-                <div>
-                  <Label htmlFor="date" className="flex items-center gap-2">
-                    <Calendar className="w-4 h-4" />
-                    Preferred Date *
-                  </Label>
-                  <DatePicker
-                    selected={formData.date ? new Date(formData.date) : null}
-                    onChange={(date: Date) => setFormData({ ...formData, date: date?.toISOString().split('T')[0] || '' })}
-                    minDate={new Date()}
-                    filterDate={(date) => {
-                      const dateStr = date.toISOString().split('T')[0];
-                      return !bookedAppointments.some(booking => booking.date === dateStr);
-                    }}
-                    dateFormat="yyyy-MM-dd"
-                    placeholderText="Select a date"
-                    className="mt-2 w-full bg-card border border-border text-foreground rounded-md p-2"
-                  />
-                </div>
-
-                {/* Time */}
-                <div>
-                  <Label htmlFor="time" className="flex items-center gap-2">
-                    <Clock className="w-4 h-4" />
-                    Preferred Time *
-                  </Label>
-                  <Select value={formData.time} onValueChange={(value) => setFormData({ ...formData, time: value })}>
-                    <SelectTrigger className="mt-2">
-                      <SelectValue placeholder={availableTimes.length ? "Select time" : "No available time"} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {availableTimes.map((time) => (
-                        <SelectItem key={time} value={time}>{time}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                {/* Notes */}
-                <div>
-                  <Label htmlFor="notes">Special Requests (Optional)</Label>
-                  <Textarea
-                    id="notes"
-                    placeholder="Any specific requests or notes..."
-                    value={formData.notes}
-                    onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                    className="mt-2"
-                    rows={4}
-                  />
-                </div>
-
-                {/* Submit */}
-                <Button
-                  type="submit"
-                  size="lg"
-                  disabled={loading || availableTimes.length === 0}
-                  className="w-full bg-primary text-primary-foreground hover:bg-primary/90 font-semibold"
-                >
-                  {loading ? 'Submitting...' : 'Request Appointment'}
-                </Button>
-              </div>
-            </form>
-
-            {/* Additional Info */}
-            <div className="mt-8 bg-secondary border border-border rounded-lg p-6 animate-fade-in">
-              <h3 className="text-lg font-semibold text-foreground mb-4">What Happens Next?</h3>
-              <ul className="space-y-3 text-muted-foreground">
-                <li className="flex items-start gap-3">
-                  <span className="text-primary mt-1">1.</span>
-                  <span>We'll receive your appointment request</span>
-                </li>
-                <li className="flex items-start gap-3">
-                  <span className="text-primary mt-1">2.</span>
-                  <span>Our team will contact you within 24 hours to confirm</span>
-                </li>
-                <li className="flex items-start gap-3">
-                  <span className="text-primary mt-1">3.</span>
-                  <span>You'll receive a confirmation via phone or email</span>
-                </li>
-              </ul>
+            {/* Name */}
+            <div>
+              <Label htmlFor="name">Full Name *</Label>
+              <Input
+                id="name"
+                type="text"
+                placeholder="John Doe"
+                value={formData.name}
+                onChange={e => setFormData({ ...formData, name: e.target.value })}
+                className="mt-2"
+                required
+              />
             </div>
-          </div>
+
+            {/* Phone */}
+            <div>
+              <Label htmlFor="phone">Phone Number *</Label>
+              <Input
+                id="phone"
+                type="tel"
+                placeholder="(123) 456-7890"
+                value={formData.phone}
+                onChange={e => setFormData({ ...formData, phone: e.target.value })}
+                className="mt-2"
+                required
+              />
+            </div>
+
+            {/* Email */}
+            <div>
+              <Label htmlFor="email">Email (Optional)</Label>
+              <Input
+                id="email"
+                type="email"
+                placeholder="john@example.com"
+                value={formData.email}
+                onChange={e => setFormData({ ...formData, email: e.target.value })}
+                className="mt-2"
+              />
+            </div>
+
+            {/* Service */}
+            <div>
+              <Label htmlFor="service">Service *</Label>
+              <Select value={formData.service} onValueChange={value => setFormData({ ...formData, service: value })}>
+                <SelectTrigger className="mt-2">
+                  <SelectValue placeholder="Select a service" />
+                </SelectTrigger>
+                <SelectContent>
+                  {services.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Date Picker */}
+            <div>
+              <Label className="flex items-center gap-2">
+                <Calendar className="w-4 h-4" /> Preferred Date *
+              </Label>
+              <DayPicker
+                mode="single"
+                selected={formData.date ? new Date(formData.date) : undefined}
+                onSelect={date => setFormData({ ...formData, date: date ? date.toISOString().split('T')[0] : '' })}
+                disabled={[{ before: new Date() }, ...disabledDays]}
+                className="bg-card border border-border rounded-md p-2 mt-2 text-foreground shadow-sm"
+              />
+            </div>
+
+            {/* Time */}
+            <div>
+              <Label className="flex items-center gap-2">
+                <Clock className="w-4 h-4" /> Preferred Time *
+              </Label>
+              <Select value={formData.time} onValueChange={value => setFormData({ ...formData, time: value })}>
+                <SelectTrigger className="mt-2">
+                  <SelectValue placeholder={availableTimes.length ? "Select time" : "No available time"} />
+                </SelectTrigger>
+                <SelectContent>
+                  {availableTimes.map(time => <SelectItem key={time} value={time}>{time}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Notes */}
+            <div>
+              <Label htmlFor="notes">Special Requests (Optional)</Label>
+              <Textarea
+                id="notes"
+                placeholder="Any specific requests or notes..."
+                value={formData.notes}
+                onChange={e => setFormData({ ...formData, notes: e.target.value })}
+                className="mt-2"
+                rows={4}
+              />
+            </div>
+
+            <Button
+              type="submit"
+              size="lg"
+              disabled={loading || availableTimes.length === 0}
+              className="w-full bg-primary text-primary-foreground hover:bg-primary/90 font-semibold"
+            >
+              {loading ? 'Submitting...' : 'Request Appointment'}
+            </Button>
+          </form>
         </div>
       </section>
     </div>
