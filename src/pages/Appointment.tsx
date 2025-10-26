@@ -8,8 +8,10 @@ import { useToast } from '@/hooks/use-toast';
 import { Calendar, Clock, Scissors } from 'lucide-react';
 import { DayPicker } from 'react-day-picker';
 import 'react-day-picker/dist/style.css';
+import { utcToZonedTime, format } from 'date-fns-tz';
 
 const SHEET_URL = 'https://api.sheetbest.com/sheets/c7191ac9-a4f6-474f-bb74-d74d7de28566';
+const TIMEZONE = 'America/Los_Angeles'; // California time
 
 const Appointment = () => {
   const { toast } = useToast();
@@ -48,6 +50,7 @@ const Appointment = () => {
       .catch(err => console.error(err));
   }, []);
 
+  // Submit appointment
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.name || !formData.phone || !formData.date || !formData.time || !formData.service) {
@@ -61,10 +64,10 @@ const Appointment = () => {
 
     setLoading(true);
     try {
-      const payload = {
-        ...formData,
-        date: formData.date, // Already YYYY-MM-DD
-      };
+      // Convert date to California format yyyy-MM-dd
+      const caDate = format(utcToZonedTime(new Date(formData.date), TIMEZONE), 'yyyy-MM-dd', { timeZone: TIMEZONE });
+
+      const payload = { ...formData, date: caDate };
 
       await fetch(SHEET_URL, {
         method: 'POST',
@@ -102,22 +105,26 @@ const Appointment = () => {
     }
   };
 
-  // Filter available times for selected date
+  // Filter available times
   const availableTimes = timeSlots.filter(time => {
     if (!formData.date) return true;
 
-    const now = new Date();
-    const selectedDate = new Date(formData.date);
+    const now = utcToZonedTime(new Date(), TIMEZONE);
+    const [hourStr, minutePart] = time.split(':');
+    const minute = parseInt(minutePart);
+    const ampm = time.split(' ')[1];
+    let hour = parseInt(hourStr);
+    if (ampm === 'PM' && hour !== 12) hour += 12;
+    if (ampm === 'AM' && hour === 12) hour = 0;
 
-    // Disable past times for today
-    if (selectedDate.toDateString() === now.toDateString()) {
-      const [hourStr, minutePart] = time.split(':');
-      const minute = parseInt(minutePart);
-      const ampm = time.split(' ')[1];
-      let hour = parseInt(hourStr);
-      if (ampm === 'PM' && hour !== 12) hour += 12;
-      if (ampm === 'AM' && hour === 12) hour = 0;
+    const selectedDate = utcToZonedTime(new Date(formData.date), TIMEZONE);
 
+    // If selected date is today, disable past times
+    if (
+      selectedDate.getFullYear() === now.getFullYear() &&
+      selectedDate.getMonth() === now.getMonth() &&
+      selectedDate.getDate() === now.getDate()
+    ) {
       if (hour < now.getHours() || (hour === now.getHours() && minute <= now.getMinutes())) {
         return false;
       }
@@ -129,9 +136,9 @@ const Appointment = () => {
     );
   });
 
-  // Compute disabled days for DayPicker
-  const disabledDays = bookedAppointments.map(b => new Date(b.date));
-  
+  // Disabled days for DayPicker
+  const disabledDays = bookedAppointments.map(b => utcToZonedTime(new Date(b.date), TIMEZONE));
+
   return (
     <div className="min-h-screen pt-20">
       {/* Hero */}
@@ -206,16 +213,20 @@ const Appointment = () => {
               </Select>
             </div>
 
-            {/* Date Picker */}
+            {/* Date */}
             <div>
               <Label className="flex items-center gap-2">
                 <Calendar className="w-4 h-4" /> Preferred Date *
               </Label>
               <DayPicker
                 mode="single"
-                selected={formData.date ? new Date(formData.date) : undefined}
-                onSelect={date => setFormData({ ...formData, date: date ? date.toISOString().split('T')[0] : '' })}
-                disabled={[{ before: new Date() }, ...disabledDays]}
+                selected={formData.date ? utcToZonedTime(new Date(formData.date), TIMEZONE) : undefined}
+                onSelect={date => {
+                  if (!date) return;
+                  const caDate = format(utcToZonedTime(date, TIMEZONE), 'yyyy-MM-dd', { timeZone: TIMEZONE });
+                  setFormData({ ...formData, date: caDate });
+                }}
+                disabled={[{ before: utcToZonedTime(new Date(), TIMEZONE) }, ...disabledDays]}
                 className="bg-card border border-border rounded-md p-2 mt-2 text-foreground shadow-sm"
               />
             </div>
