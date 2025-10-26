@@ -6,12 +6,10 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { Calendar, Clock, Scissors } from 'lucide-react';
-import { DayPicker } from 'react-day-picker';
-import 'react-day-picker/dist/style.css';
-import { utcToZonedTime, format } from 'date-fns-tz';
+import DatePicker from 'react-datepicker';
+import 'react-datepicker/dist/react-datepicker.css';
 
 const SHEET_URL = 'https://api.sheetbest.com/sheets/c7191ac9-a4f6-474f-bb74-d74d7de28566';
-const TIMEZONE = 'America/Los_Angeles'; // California time
 
 const Appointment = () => {
   const { toast } = useToast();
@@ -50,7 +48,6 @@ const Appointment = () => {
       .catch(err => console.error(err));
   }, []);
 
-  // Submit appointment
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.name || !formData.phone || !formData.date || !formData.time || !formData.service) {
@@ -64,15 +61,10 @@ const Appointment = () => {
 
     setLoading(true);
     try {
-      // Convert date to California format yyyy-MM-dd
-      const caDate = format(utcToZonedTime(new Date(formData.date), TIMEZONE), 'yyyy-MM-dd', { timeZone: TIMEZONE });
-
-      const payload = { ...formData, date: caDate };
-
       await fetch(SHEET_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
+        body: JSON.stringify(formData),
       });
 
       toast({
@@ -105,26 +97,21 @@ const Appointment = () => {
     }
   };
 
-  // Filter available times
   const availableTimes = timeSlots.filter(time => {
     if (!formData.date) return true;
 
-    const now = utcToZonedTime(new Date(), TIMEZONE);
-    const [hourStr, minutePart] = time.split(':');
-    const minute = parseInt(minutePart);
-    const ampm = time.split(' ')[1];
-    let hour = parseInt(hourStr);
-    if (ampm === 'PM' && hour !== 12) hour += 12;
-    if (ampm === 'AM' && hour === 12) hour = 0;
+    const now = new Date();
+    const selectedDate = new Date(formData.date);
 
-    const selectedDate = utcToZonedTime(new Date(formData.date), TIMEZONE);
+    // Disable past times for today
+    if (selectedDate.toDateString() === now.toDateString()) {
+      const [hourStr, minutePart] = time.split(':');
+      const minute = parseInt(minutePart);
+      const ampm = time.split(' ')[1];
+      let hour = parseInt(hourStr);
+      if (ampm === 'PM' && hour !== 12) hour += 12;
+      if (ampm === 'AM' && hour === 12) hour = 0;
 
-    // If selected date is today, disable past times
-    if (
-      selectedDate.getFullYear() === now.getFullYear() &&
-      selectedDate.getMonth() === now.getMonth() &&
-      selectedDate.getDate() === now.getDate()
-    ) {
       if (hour < now.getHours() || (hour === now.getHours() && minute <= now.getMinutes())) {
         return false;
       }
@@ -136,71 +123,35 @@ const Appointment = () => {
     );
   });
 
-  // Disabled days for DayPicker
-  const disabledDays = bookedAppointments.map(b => utcToZonedTime(new Date(b.date), TIMEZONE));
-
   return (
     <div className="min-h-screen pt-20">
-      {/* Hero */}
       <section className="py-20 bg-secondary">
         <div className="container mx-auto px-4 text-center animate-fade-in">
           <Scissors className="w-16 h-16 text-primary mx-auto mb-6" />
-          <h1 className="text-5xl md:text-6xl font-bold text-foreground mb-6">
-            Book Your Appointment
-          </h1>
-          <p className="text-xl text-muted-foreground">
-            Schedule your visit and experience premium grooming
-          </p>
+          <h1 className="text-5xl md:text-6xl font-bold text-foreground mb-6">Book Your Appointment</h1>
+          <p className="text-xl text-muted-foreground">Schedule your visit and experience premium grooming</p>
         </div>
       </section>
 
-      {/* Form */}
       <section className="py-20 bg-background">
         <div className="container mx-auto px-4 max-w-2xl">
           <form onSubmit={handleSubmit} className="bg-card border border-border rounded-lg p-8 animate-fade-in space-y-6">
 
-            {/* Name */}
             <div>
               <Label htmlFor="name">Full Name *</Label>
-              <Input
-                id="name"
-                type="text"
-                placeholder="John Doe"
-                value={formData.name}
-                onChange={e => setFormData({ ...formData, name: e.target.value })}
-                className="mt-2"
-                required
-              />
+              <Input id="name" type="text" placeholder="John Doe" value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} className="mt-2" required />
             </div>
 
-            {/* Phone */}
             <div>
               <Label htmlFor="phone">Phone Number *</Label>
-              <Input
-                id="phone"
-                type="tel"
-                placeholder="(123) 456-7890"
-                value={formData.phone}
-                onChange={e => setFormData({ ...formData, phone: e.target.value })}
-                className="mt-2"
-                required
-              />
+              <Input id="phone" type="tel" placeholder="(123) 456-7890" value={formData.phone} onChange={e => setFormData({ ...formData, phone: e.target.value })} className="mt-2" required />
             </div>
 
-            {/* Email */}
             <div>
               <Label htmlFor="email">Email (Optional)</Label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="john@example.com"
-                value={formData.email}
-                onChange={e => setFormData({ ...formData, email: e.target.value })}
-                className="mt-2"
-              />
+              <Input id="email" type="email" placeholder="john@example.com" value={formData.email} onChange={e => setFormData({ ...formData, email: e.target.value })} className="mt-2" />
             </div>
 
-            {/* Service */}
             <div>
               <Label htmlFor="service">Service *</Label>
               <Select value={formData.service} onValueChange={value => setFormData({ ...formData, service: value })}>
@@ -213,29 +164,20 @@ const Appointment = () => {
               </Select>
             </div>
 
-            {/* Date */}
             <div>
-              <Label className="flex items-center gap-2">
-                <Calendar className="w-4 h-4" /> Preferred Date *
-              </Label>
-              <DayPicker
-                mode="single"
-                selected={formData.date ? utcToZonedTime(new Date(formData.date), TIMEZONE) : undefined}
-                onSelect={date => {
-                  if (!date) return;
-                  const caDate = format(utcToZonedTime(date, TIMEZONE), 'yyyy-MM-dd', { timeZone: TIMEZONE });
-                  setFormData({ ...formData, date: caDate });
-                }}
-                disabled={[{ before: utcToZonedTime(new Date(), TIMEZONE) }, ...disabledDays]}
-                className="bg-card border border-border rounded-md p-2 mt-2 text-foreground shadow-sm"
+              <Label htmlFor="date" className="flex items-center gap-2"><Calendar className="w-4 h-4" /> Preferred Date *</Label>
+              <DatePicker
+                selected={formData.date ? new Date(formData.date) : null}
+                onChange={date => setFormData({ ...formData, date: date?.toISOString().split('T')[0] || '' })}
+                minDate={new Date()}
+                dateFormat="yyyy-MM-dd"
+                placeholderText="Select a date"
+                className="mt-2 w-full bg-card border border-border text-foreground rounded-md p-2"
               />
             </div>
 
-            {/* Time */}
             <div>
-              <Label className="flex items-center gap-2">
-                <Clock className="w-4 h-4" /> Preferred Time *
-              </Label>
+              <Label htmlFor="time" className="flex items-center gap-2"><Clock className="w-4 h-4" /> Preferred Time *</Label>
               <Select value={formData.time} onValueChange={value => setFormData({ ...formData, time: value })}>
                 <SelectTrigger className="mt-2">
                   <SelectValue placeholder={availableTimes.length ? "Select time" : "No available time"} />
@@ -246,25 +188,12 @@ const Appointment = () => {
               </Select>
             </div>
 
-            {/* Notes */}
             <div>
               <Label htmlFor="notes">Special Requests (Optional)</Label>
-              <Textarea
-                id="notes"
-                placeholder="Any specific requests or notes..."
-                value={formData.notes}
-                onChange={e => setFormData({ ...formData, notes: e.target.value })}
-                className="mt-2"
-                rows={4}
-              />
+              <Textarea id="notes" placeholder="Any specific requests or notes..." value={formData.notes} onChange={e => setFormData({ ...formData, notes: e.target.value })} className="mt-2" rows={4} />
             </div>
 
-            <Button
-              type="submit"
-              size="lg"
-              disabled={loading || availableTimes.length === 0}
-              className="w-full bg-primary text-primary-foreground hover:bg-primary/90 font-semibold"
-            >
+            <Button type="submit" size="lg" disabled={loading || availableTimes.length === 0} className="w-full bg-primary text-primary-foreground hover:bg-primary/90 font-semibold">
               {loading ? 'Submitting...' : 'Request Appointment'}
             </Button>
           </form>
