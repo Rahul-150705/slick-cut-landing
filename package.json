@@ -3,6 +3,7 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
+  "homepage": "https://Rahul-150705.github.io/slick-cut-landing",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
