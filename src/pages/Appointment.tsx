@@ -45,15 +45,21 @@ const Appointment = () => {
     '4:00 PM', '4:30 PM',
     '5:00 PM', '5:30 PM',
     '6:00 PM', '6:30 PM',
-  ];
+];
 
-  // Fetch booked appointments
   useEffect(() => {
     fetch(SHEET_URL)
       .then(res => res.json())
       .then(data => setBookedAppointments(data))
       .catch(err => console.error(err));
   }, []);
+
+  const formatDate = (date: Date) => {
+    const year = date.getFullYear();
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    const day = date.getDate().toString().padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -68,15 +74,12 @@ const Appointment = () => {
 
     setLoading(true);
     try {
-      // Convert date to ISO so it is visible in Google Sheets
-      const dateISO = new Date(formData.date).toISOString();
-
       await fetch(SHEET_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...formData,
-          date: dateISO, // send ISO date
+          date: new Date(formData.date).toISOString(), // send ISO for Google Sheets
         }),
       });
 
@@ -110,14 +113,6 @@ const Appointment = () => {
     }
   };
 
-  // Helper to format Date in YYYY-MM-DD local
-  const formatDate = (date: Date) => {
-    const year = date.getFullYear();
-    const month = (date.getMonth() + 1).toString().padStart(2, '0');
-    const day = date.getDate().toString().padStart(2, '0');
-    return `${year}-${month}-${day}`;
-  };
-
   // Filter available times for selected date
   const availableTimes = timeSlots.filter(time => {
     if (!formData.date) return true;
@@ -125,7 +120,6 @@ const Appointment = () => {
     const now = new Date();
     const selectedDate = new Date(formData.date);
 
-    // Disable past times for today
     if (formatDate(selectedDate) === formatDate(now)) {
       const [hourStr, minutePart] = time.split(':');
       const minute = parseInt(minutePart);
@@ -139,9 +133,8 @@ const Appointment = () => {
       }
     }
 
-    // Disable already booked times
     return !bookedAppointments.some(
-      booking => booking.date.split('T')[0] === formData.date && booking.time === time
+      booking => formatDate(new Date(booking.date)) === formData.date && booking.time === time
     );
   });
 
