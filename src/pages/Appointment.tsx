@@ -224,7 +224,7 @@ const Appointment = () => {
                     }}
                     dateFormat="yyyy-MM-dd"
                     placeholderText="Select a date"
-                    className="mt-2 w-full"
+                    className="mt-2 w-full bg-card border border-border text-foreground rounded-md p-2"
                   />
                 </div>
 
@@ -236,7 +236,7 @@ const Appointment = () => {
                   </Label>
                   <Select value={formData.time} onValueChange={(value) => setFormData({ ...formData, time: value })}>
                     <SelectTrigger className="mt-2">
-                      <SelectValue placeholder="Select time" />
+                      <SelectValue placeholder={availableTimes.length ? "Select time" : "No available time"} />
                     </SelectTrigger>
                     <SelectContent>
                       {availableTimes.map((time) => (
@@ -263,7 +263,7 @@ const Appointment = () => {
                 <Button
                   type="submit"
                   size="lg"
-                  disabled={loading}
+                  disabled={loading || availableTimes.length === 0}
                   className="w-full bg-primary text-primary-foreground hover:bg-primary/90 font-semibold"
                 >
                   {loading ? 'Submitting...' : 'Request Appointment'}
