@@ -1,11 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { Calendar, Clock, Scissors } from 'lucide-react';
+import { Calendar as CalendarIcon, Clock, Scissors } from 'lucide-react';
 import { DayPicker } from 'react-day-picker';
 import 'react-day-picker/dist/style.css';
 
@@ -24,6 +24,8 @@ const Appointment = () => {
     service: '',
     notes: '',
   });
+  const [calendarOpen, setCalendarOpen] = useState(false);
+  const calendarRef = useRef<HTMLDivElement>(null);
 
   const services = [
     'Signature Haircut',
@@ -38,20 +40,30 @@ const Appointment = () => {
     '9:00 AM', '9:30 AM',
     '10:00 AM', '10:30 AM',
     '11:00 AM', '11:30 AM',
-    // skip 12:00 PM – 1:00 PM (lunch)
     '1:00 PM', '1:30 PM',
     '2:00 PM', '2:30 PM',
     '3:00 PM', '3:30 PM',
     '4:00 PM', '4:30 PM',
     '5:00 PM', '5:30 PM',
     '6:00 PM', '6:30 PM',
-];
+  ];
 
   useEffect(() => {
     fetch(SHEET_URL)
       .then(res => res.json())
       .then(data => setBookedAppointments(data))
       .catch(err => console.error(err));
+  }, []);
+
+  // Close calendar if clicked outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (calendarRef.current && !calendarRef.current.contains(event.target as Node)) {
+        setCalendarOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
   const formatDate = (date: Date) => {
@@ -79,7 +91,7 @@ const Appointment = () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...formData,
-          date: new Date(formData.date).toISOString(), // send ISO for Google Sheets
+          date: new Date(formData.date).toISOString(),
         }),
       });
 
@@ -100,7 +112,6 @@ const Appointment = () => {
 
       const updated = await fetch(SHEET_URL).then(res => res.json());
       setBookedAppointments(updated);
-
     } catch (error) {
       console.error(error);
       toast({
@@ -110,10 +121,10 @@ const Appointment = () => {
       });
     } finally {
       setLoading(false);
+      setCalendarOpen(false);
     }
   };
 
-  // Filter available times for selected date
   const availableTimes = timeSlots.filter(time => {
     if (!formData.date) return true;
 
@@ -155,52 +166,112 @@ const Appointment = () => {
           <form onSubmit={handleSubmit} className="bg-card border border-border rounded-lg p-8 animate-fade-in space-y-6">
             <div>
               <Label htmlFor="name">Full Name *</Label>
-              <Input id="name" type="text" placeholder="John Doe" value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} required className="mt-2"/>
+              <Input
+                id="name"
+                type="text"
+                placeholder="John Doe"
+                value={formData.name}
+                onChange={e => setFormData({ ...formData, name: e.target.value })}
+                required
+                className="mt-2"
+              />
             </div>
 
             <div>
               <Label htmlFor="phone">Phone Number *</Label>
-              <Input id="phone" type="tel" placeholder="(123) 456-7890" value={formData.phone} onChange={e => setFormData({ ...formData, phone: e.target.value })} required className="mt-2"/>
+              <Input
+                id="phone"
+                type="tel"
+                placeholder="(123) 456-7890"
+                value={formData.phone}
+                onChange={e => setFormData({ ...formData, phone: e.target.value })}
+                required
+                className="mt-2"
+              />
             </div>
 
             <div>
               <Label htmlFor="email">Email (Optional)</Label>
-              <Input id="email" type="email" placeholder="john@example.com" value={formData.email} onChange={e => setFormData({ ...formData, email: e.target.value })} className="mt-2"/>
+              <Input
+                id="email"
+                type="email"
+                placeholder="john@example.com"
+                value={formData.email}
+                onChange={e => setFormData({ ...formData, email: e.target.value })}
+                className="mt-2"
+              />
             </div>
 
             <div>
               <Label htmlFor="service">Service *</Label>
               <Select value={formData.service} onValueChange={value => setFormData({ ...formData, service: value })}>
-                <SelectTrigger className="mt-2"><SelectValue placeholder="Select a service" /></SelectTrigger>
-                <SelectContent>{services.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
+                <SelectTrigger className="mt-2">
+                  <SelectValue placeholder="Select a service" />
+                </SelectTrigger>
+                <SelectContent>
+                  {services.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                </SelectContent>
               </Select>
             </div>
 
-            <div>
-              <Label className="flex items-center gap-2"><Calendar className="w-4 h-4"/> Preferred Date *</Label>
-              <DayPicker
-                mode="single"
-                selected={formData.date ? new Date(formData.date) : undefined}
-                onSelect={date => setFormData({ ...formData, date: date ? formatDate(date) : '' })}
-                disabled={[{ before: new Date() }, ...disabledDays]}
-                className="bg-card border border-border rounded-md p-2 mt-2 text-foreground shadow-sm"
-              />
+            <div className="relative" ref={calendarRef}>
+              <Label className="flex items-center gap-2">
+                <CalendarIcon className="w-4 h-4"/> Preferred Date *
+              </Label>
+              <div className="flex items-center gap-2 mt-2">
+                <Input
+                  type="text"
+                  placeholder="YYYY-MM-DD"
+                  value={formData.date}
+                  onChange={e => setFormData({ ...formData, date: e.target.value })}
+                  required
+                />
+                <Button type="button" onClick={() => setCalendarOpen(prev => !prev)}>
+                  <CalendarIcon className="w-5 h-5" />
+                </Button>
+              </div>
+              {calendarOpen && (
+                <div className="absolute z-50 mt-2">
+                  <DayPicker
+                    mode="single"
+                    selected={formData.date ? new Date(formData.date) : undefined}
+                    onSelect={date => date && setFormData({ ...formData, date: formatDate(date) })}
+                    disabled={[{ before: new Date() }, ...disabledDays]}
+                  />
+                </div>
+              )}
             </div>
 
             <div>
               <Label className="flex items-center gap-2"><Clock className="w-4 h-4"/> Preferred Time *</Label>
               <Select value={formData.time} onValueChange={value => setFormData({ ...formData, time: value })}>
-                <SelectTrigger className="mt-2"><SelectValue placeholder={availableTimes.length ? "Select time" : "No available time"} /></SelectTrigger>
-                <SelectContent>{availableTimes.map(time => <SelectItem key={time} value={time}>{time}</SelectItem>)}</SelectContent>
+                <SelectTrigger className="mt-2">
+                  <SelectValue placeholder={availableTimes.length ? "Select time" : "No available time"} />
+                </SelectTrigger>
+                <SelectContent>
+                  {availableTimes.map(time => <SelectItem key={time} value={time}>{time}</SelectItem>)}
+                </SelectContent>
               </Select>
             </div>
 
             <div>
               <Label htmlFor="notes">Special Requests (Optional)</Label>
-              <Textarea id="notes" placeholder="Any specific requests or notes..." value={formData.notes} onChange={e => setFormData({ ...formData, notes: e.target.value })} rows={4} className="mt-2"/>
+              <Textarea
+                id="notes"
+                placeholder="Any specific requests or notes..."
+                value={formData.notes}
+                onChange={e => setFormData({ ...formData, notes: e.target.value })}
+                rows={4}
+                className="mt-2"
+              />
             </div>
 
-            <Button type="submit" size="lg" disabled={loading || availableTimes.length === 0} className="w-full bg-primary text-primary-foreground hover:bg-primary/90 font-semibold">
+            <Button
+              type="submit"
+              size="lg"
+              disabled={loading || availableTimes.length === 0}
+              className="w-full bg-primary text-primary-foreground hover:bg-primary/90 font-semibold"
+            >
               {loading ? 'Submitting...' : 'Request Appointment'}
             </Button>
           </form>
