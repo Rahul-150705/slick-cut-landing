@@ -11,7 +11,7 @@ const Footer = () => {
             <div className="flex items-center gap-2 mb-4">
               <Scissors className="w-8 h-8 text-primary" />
               <div>
-                <h3 className="text-xl font-bold text-foreground">Elite Cuts</h3>
+                <h3 className="text-xl font-bold text-foreground">California Barber Shop</h3>
                 <p className="text-xs text-primary font-medium">Premium Barbershop</p>
               </div>
             </div>
@@ -62,9 +62,8 @@ const Footer = () => {
           <div>
             <h4 className="text-lg font-semibold text-foreground mb-4">Hours</h4>
             <div className="text-sm text-muted-foreground mb-4">
-              <p>Mon - Fri: 9am - 7pm</p>
-              <p>Sat: 9am - 6pm</p>
-              <p>Sun: 10am - 4pm</p>
+              <p>Tue - Fri: 9am - 7pm</p>
+              <p>Sat -Sun: Closed</p>
             </div>
             <div className="flex gap-4">
               <a
@@ -77,7 +76,7 @@ const Footer = () => {
                 <Instagram className="w-5 h-5" />
               </a>
               <a
-                href="https://wa.me/1234567890"
+                href="https://wa.me/+1 650-326-4820"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-muted-foreground hover:text-primary transition-colors"
@@ -92,7 +91,7 @@ const Footer = () => {
         </div>
 
         <div className="border-t border-border mt-8 pt-8 text-center text-sm text-muted-foreground">
-          <p>&copy; {new Date().getFullYear()} Elite Cuts Barbershop. All rights reserved.</p>
+          <p>&copy; {new Date().getFullYear()} California Barber Shop. All rights reserved.</p>
         </div>
       </div>
     </footer>
