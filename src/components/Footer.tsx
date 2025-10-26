@@ -11,7 +11,7 @@ const Footer = () => {
             <div className="flex items-center gap-2 mb-4">
               <Scissors className="w-8 h-8 text-primary" />
               <div>
-                <h3 className="text-xl font-bold text-foreground">Elite Cuts</h3>
+                <h3 className="text-xl font-bold text-foreground">California Barber Shop</h3>
                 <p className="text-xs text-primary font-medium">Premium Barbershop</p>
               </div>
             </div>
