@@ -11,8 +11,8 @@ const Footer = () => {
             <div className="flex items-center gap-2 mb-4">
               <Scissors className="w-8 h-8 text-primary" />
               <div>
-                <h3 className="text-xl font-bold text-foreground">California Barber Shop</h3>
-                <p className="text-xs text-primary font-medium">Premium Barbershop</p>
+                <h3 className="text-xl font-bold text-foreground">Cali BarberShop</h3>
+                <p className="text-xs text-primary font-medium">Vintage Barbershop</p>
               </div>
             </div>
             <p className="text-sm text-muted-foreground">
@@ -43,9 +43,9 @@ const Footer = () => {
           <div>
             <h4 className="text-lg font-semibold text-foreground mb-4">Contact</h4>
             <div className="flex flex-col gap-3">
-              <a href="tel:+16503264820" className="flex items-center gap-2 text-sm text-muted-foreground hover:text-primary transition-colors">
+              <a href="tel:+8315668062" className="flex items-center gap-2 text-sm text-muted-foreground hover:text-primary transition-colors">
                 <Phone className="w-4 h-4" />
-                16503264820
+                (831) 566-8062
               </a>
               <a href="mailto:californiabarbershop.com" className="flex items-center gap-2 text-sm text-muted-foreground hover:text-primary transition-colors">
                 <Mail className="w-4 h-4" />
@@ -76,7 +76,7 @@ const Footer = () => {
                 <Instagram className="w-5 h-5" />
               </a>
               <a
-                href="https://wa.me/16503264820"
+                href="https://wa.me/+8315668062"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-muted-foreground hover:text-primary transition-colors"
@@ -91,7 +91,7 @@ const Footer = () => {
         </div>
 
         <div className="border-t border-border mt-8 pt-8 text-center text-sm text-muted-foreground">
-          <p>&copy; {new Date().getFullYear()} California Barber Shop. All rights reserved.</p>
+          <p>&copy; {new Date().getFullYear()} Cali BarberShop. All rights reserved.</p>
         </div>
       </div>
     </footer>
