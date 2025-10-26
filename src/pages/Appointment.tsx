@@ -9,6 +9,7 @@ import { Calendar, Clock, Scissors } from 'lucide-react';
 
 const Appointment = () => {
   const { toast } = useToast();
+  const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     phone: '',
@@ -34,10 +35,9 @@ const Appointment = () => {
     '5:00 PM', '6:00 PM',
   ];
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    // Basic validation
+
     if (!formData.name || !formData.phone || !formData.date || !formData.time || !formData.service) {
       toast({
         title: 'Missing Information',
@@ -47,22 +47,43 @@ const Appointment = () => {
       return;
     }
 
-    // Show success message
-    toast({
-      title: 'Appointment Requested!',
-      description: 'We will contact you shortly to confirm your appointment.',
-    });
+    setLoading(true);
 
-    // Reset form
-    setFormData({
-      name: '',
-      phone: '',
-      email: '',
-      date: '',
-      time: '',
-      service: '',
-      notes: '',
-    });
+    try {
+
+      const SHEET_URL = 'https://api.sheetbest.com/sheets/c7191ac9-a4f6-474f-bb74-d74d7de28566';
+
+      await fetch(SHEET_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData),
+      });
+
+      toast({
+        title: 'Appointment Booked!',
+        description: 'We’ll contact you shortly to confirm your slot.',
+      });
+
+      // Reset form
+      setFormData({
+        name: '',
+        phone: '',
+        email: '',
+        date: '',
+        time: '',
+        service: '',
+        notes: '',
+      });
+    } catch (error) {
+      console.error(error);
+      toast({
+        title: 'Error',
+        description: 'Failed to submit appointment. Please try again later.',
+        variant: 'destructive',
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -197,8 +218,13 @@ const Appointment = () => {
                 </div>
 
                 {/* Submit Button */}
-                <Button type="submit" size="lg" className="w-full bg-primary text-primary-foreground hover:bg-primary/90 font-semibold">
-                  Request Appointment
+                <Button
+                  type="submit"
+                  size="lg"
+                  disabled={loading}
+                  className="w-full bg-primary text-primary-foreground hover:bg-primary/90 font-semibold"
+                >
+                  {loading ? 'Submitting...' : 'Request Appointment'}
                 </Button>
               </div>
             </form>
