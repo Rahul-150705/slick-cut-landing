@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -24,8 +24,7 @@ const Appointment = () => {
     service: '',
     notes: '',
   });
-  const [calendarOpen, setCalendarOpen] = useState(false);
-  const calendarRef = useRef<HTMLDivElement>(null);
+  const [showCalendar, setShowCalendar] = useState(false);
 
   const services = [
     'Signature Haircut',
@@ -40,6 +39,7 @@ const Appointment = () => {
     '9:00 AM', '9:30 AM',
     '10:00 AM', '10:30 AM',
     '11:00 AM', '11:30 AM',
+    // skip 12:00 PM – 1:00 PM (lunch)
     '1:00 PM', '1:30 PM',
     '2:00 PM', '2:30 PM',
     '3:00 PM', '3:30 PM',
@@ -48,22 +48,12 @@ const Appointment = () => {
     '6:00 PM', '6:30 PM',
   ];
 
+  // Fetch booked appointments
   useEffect(() => {
     fetch(SHEET_URL)
       .then(res => res.json())
       .then(data => setBookedAppointments(data))
       .catch(err => console.error(err));
-  }, []);
-
-  // Close calendar if clicked outside
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (calendarRef.current && !calendarRef.current.contains(event.target as Node)) {
-        setCalendarOpen(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
   const formatDate = (date: Date) => {
@@ -91,7 +81,7 @@ const Appointment = () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...formData,
-          date: new Date(formData.date).toISOString(),
+          date: formData.date, // send visible YYYY-MM-DD to Google Sheets
         }),
       });
 
@@ -121,10 +111,11 @@ const Appointment = () => {
       });
     } finally {
       setLoading(false);
-      setCalendarOpen(false);
+      setShowCalendar(false);
     }
   };
 
+  // Filter available times for selected date
   const availableTimes = timeSlots.filter(time => {
     if (!formData.date) return true;
 
@@ -145,7 +136,7 @@ const Appointment = () => {
     }
 
     return !bookedAppointments.some(
-      booking => formatDate(new Date(booking.date)) === formData.date && booking.time === time
+      booking => booking.date === formData.date && booking.time === time
     );
   });
 
@@ -214,7 +205,8 @@ const Appointment = () => {
               </Select>
             </div>
 
-            <div className="relative" ref={calendarRef}>
+            {/* Date input with inline calendar */}
+            <div>
               <Label className="flex items-center gap-2">
                 <CalendarIcon className="w-4 h-4"/> Preferred Date *
               </Label>
@@ -226,12 +218,12 @@ const Appointment = () => {
                   onChange={e => setFormData({ ...formData, date: e.target.value })}
                   required
                 />
-                <Button type="button" onClick={() => setCalendarOpen(prev => !prev)}>
+                <Button type="button" onClick={() => setShowCalendar(prev => !prev)}>
                   <CalendarIcon className="w-5 h-5" />
                 </Button>
               </div>
-              {calendarOpen && (
-                <div className="absolute z-50 mt-2">
+              {showCalendar && (
+                <div className="mt-2 border rounded-md p-2 bg-card">
                   <DayPicker
                     mode="single"
                     selected={formData.date ? new Date(formData.date) : undefined}
