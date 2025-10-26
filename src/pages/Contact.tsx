@@ -13,7 +13,7 @@ const Contact = () => {
               Visit Us
             </h1>
             <p className="text-xl text-muted-foreground">
-              We'd love to see you at Elite Cuts Barbershop
+              We'd love to see you at California BarberShop
             </p>
           </div>
         </div>
@@ -37,8 +37,8 @@ const Contact = () => {
                     <div>
                       <h3 className="text-lg font-semibold text-foreground mb-1">Location</h3>
                       <p className="text-muted-foreground">
-                        123 Main Street<br />
-                        Your City, ST 12345
+                        441 Cambridge Ave,Palo Alto,<br />
+                        CA 94306,United States
                       </p>
                     </div>
                   </div>
@@ -50,8 +50,8 @@ const Contact = () => {
                     </div>
                     <div>
                       <h3 className="text-lg font-semibold text-foreground mb-1">Phone</h3>
-                      <a href="tel:+1234567890" className="text-muted-foreground hover:text-primary transition-colors">
-                        (123) 456-7890
+                      <a href="tel:+16503264820" className="text-muted-foreground hover:text-primary transition-colors">
+                        16503264820
                       </a>
                     </div>
                   </div>
@@ -63,8 +63,8 @@ const Contact = () => {
                     </div>
                     <div>
                       <h3 className="text-lg font-semibold text-foreground mb-1">Email</h3>
-                      <a href="mailto:info@elitecuts.com" className="text-muted-foreground hover:text-primary transition-colors">
-                        info@elitecuts.com
+                      <a href="mailto:californiabarbershop@gmail.com" className="text-muted-foreground hover:text-primary transition-colors">
+                        californiabarbershop@gmail.com
                       </a>
                     </div>
                   </div>
@@ -78,8 +78,7 @@ const Contact = () => {
                       <h3 className="text-lg font-semibold text-foreground mb-1">Business Hours</h3>
                       <div className="text-muted-foreground space-y-1">
                         <p>Monday - Friday: 9:00 AM - 7:00 PM</p>
-                        <p>Saturday: 9:00 AM - 6:00 PM</p>
-                        <p>Sunday: 10:00 AM - 4:00 PM</p>
+                        <p>Saturday-Sunday:Closed</p>
                       </div>
                     </div>
                   </div>
@@ -99,7 +98,7 @@ const Contact = () => {
                       <Instagram className="w-6 h-6 text-primary" />
                     </a>
                     <a
-                      href="https://wa.me/1234567890"
+                      href="https://wa.me/16503264820"
                       target="_blank"
                       rel="noopener noreferrer"
                       className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center hover:bg-primary/20 transition-colors"
@@ -118,13 +117,13 @@ const Contact = () => {
             <div className="animate-fade-in" style={{ animationDelay: '0.2s' }}>
               <div className="bg-card border border-border rounded-lg overflow-hidden h-full min-h-[500px]">
                 <iframe
-                  src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3022.1422937950147!2d-73.98731968482413!3d40.75889497932681!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x89c25855c6480299%3A0x55194ec5a1ae072e!2sTimes%20Square!5e0!3m2!1sen!2sus!4v1635959542742!5m2!1sen!2sus"
+                  src="https://share.google/rKuDefEzqnlKGu5ri"
                   width="100%"
                   height="100%"
                   style={{ border: 0 }}
                   allowFullScreen
                   loading="lazy"
-                  title="Elite Cuts Barbershop Location"
+                  title="California BarberShop Location"
                 />
               </div>
             </div>
