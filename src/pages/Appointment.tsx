@@ -1,77 +1,79 @@
-import { useState, useEffect } from 'react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
+import { useState, useEffect, useRef } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
-import { useToast } from '@/hooks/use-toast';
-import { Calendar, Clock, Scissors } from 'lucide-react';
-import { DayPicker } from 'react-day-picker';
-import 'react-day-picker/dist/style.css';
+} from "@/components/ui/select";
+import { useToast } from "@/hooks/use-toast";
+import { Calendar, Clock, Scissors } from "lucide-react";
+import { DayPicker } from "react-day-picker";
+import "react-day-picker/dist/style.css";
 
 const SHEET_URL =
-  'https://api.sheetbest.com/sheets/c7191ac9-a4f6-474f-bb74-d74d7de28566';
+  "https://api.sheetbest.com/sheets/c7191ac9-a4f6-474f-bb74-d74d7de28566";
 
 const Appointment = () => {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [bookedAppointments, setBookedAppointments] = useState<any[]>([]);
   const [showCalendar, setShowCalendar] = useState(false);
+  const calendarRef = useRef<HTMLDivElement | null>(null);
+
   const [formData, setFormData] = useState({
-    name: '',
-    phone: '',
-    email: '',
-    date: '',
-    time: '',
-    service: '',
-    notes: '',
+    name: "",
+    phone: "",
+    email: "",
+    date: "",
+    time: "",
+    service: "",
+    notes: "",
   });
 
   const services = [
-    'Signature Haircut',
-    'Fade & Taper',
-    'Beard Grooming',
-    'Hot Towel Shave',
-    'Kids Cut',
-    'Haircut & Beard Combo',
+    "Signature Haircut",
+    "Fade & Taper",
+    "Beard Grooming",
+    "Hot Towel Shave",
+    "Kids Cut",
+    "Haircut & Beard Combo",
   ];
 
   const timeSlots = [
-    '9:00 AM',
-    '9:30 AM',
-    '10:00 AM',
-    '10:30 AM',
-    '11:00 AM',
-    '11:30 AM',
-    '1:00 PM',
-    '1:30 PM',
-    '2:00 PM',
-    '2:30 PM',
-    '3:00 PM',
-    '3:30 PM',
-    '4:00 PM',
-    '4:30 PM',
-    '5:00 PM',
-    '5:30 PM',
-    '6:00 PM',
-    '6:30 PM',
+    "9:00 AM",
+    "9:30 AM",
+    "10:00 AM",
+    "10:30 AM",
+    "11:00 AM",
+    "11:30 AM",
+    "1:00 PM",
+    "1:30 PM",
+    "2:00 PM",
+    "2:30 PM",
+    "3:00 PM",
+    "3:30 PM",
+    "4:00 PM",
+    "4:30 PM",
+    "5:00 PM",
+    "5:30 PM",
+    "6:00 PM",
+    "6:30 PM",
   ];
 
-  // Format date as YYYY-MM-DD
+  // Format date to YYYY-MM-DD
   const formatDate = (date: Date) => {
     const year = date.getFullYear();
-    const month = (date.getMonth() + 1).toString().padStart(2, '0');
-    const day = date.getDate().toString().padStart(2, '0');
+    const month = (date.getMonth() + 1).toString().padStart(2, "0");
+    const day = date.getDate().toString().padStart(2, "0");
     return `${year}-${month}-${day}`;
   };
 
-  // Fetch booked appointments
+  // Fetch booked appointments from Google Sheet
   useEffect(() => {
     fetch(SHEET_URL)
       .then((res) => res.json())
@@ -79,13 +81,27 @@ const Appointment = () => {
       .catch((err) => console.error(err));
   }, []);
 
-  // Set today's date by default
+  // Set today's date as default
   useEffect(() => {
     if (!formData.date) {
       const today = formatDate(new Date());
       setFormData((prev) => ({ ...prev, date: today }));
     }
   }, [formData.date]);
+
+  // Close calendar when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        calendarRef.current &&
+        !calendarRef.current.contains(event.target as Node)
+      ) {
+        setShowCalendar(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   // Handle submit
   const handleSubmit = async (e: React.FormEvent) => {
@@ -98,9 +114,9 @@ const Appointment = () => {
       !formData.service
     ) {
       toast({
-        title: 'Missing Information',
-        description: 'Please fill in all required fields',
-        variant: 'destructive',
+        title: "Missing Information",
+        description: "Please fill in all required fields",
+        variant: "destructive",
       });
       return;
     }
@@ -108,24 +124,24 @@ const Appointment = () => {
     setLoading(true);
     try {
       await fetch(SHEET_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(formData),
       });
 
       toast({
-        title: 'Appointment Booked!',
-        description: 'We’ll contact you shortly to confirm your slot.',
+        title: "Appointment Booked!",
+        description: "We’ll contact you shortly to confirm your slot.",
       });
 
       setFormData({
-        name: '',
-        phone: '',
-        email: '',
+        name: "",
+        phone: "",
+        email: "",
         date: formatDate(new Date()),
-        time: '',
-        service: '',
-        notes: '',
+        time: "",
+        service: "",
+        notes: "",
       });
 
       const updated = await fetch(SHEET_URL).then((res) => res.json());
@@ -133,9 +149,9 @@ const Appointment = () => {
     } catch (error) {
       console.error(error);
       toast({
-        title: 'Error',
-        description: 'Failed to submit appointment. Please try again later.',
-        variant: 'destructive',
+        title: "Error",
+        description: "Failed to submit appointment. Please try again later.",
+        variant: "destructive",
       });
     } finally {
       setLoading(false);
@@ -145,20 +161,19 @@ const Appointment = () => {
   // Compute available times
   const availableTimes = timeSlots.filter((time) => {
     if (!formData.date) return true;
-
     const now = new Date();
     const selectedDate = new Date(formData.date);
 
     // Hide past times for today
     if (formatDate(selectedDate) === formatDate(now)) {
-      const [hourPart, rest] = time.split(':');
-      const minutePart = rest.split(' ')[0];
-      const ampm = rest.split(' ')[1];
+      const [hourPart, rest] = time.split(":");
+      const minutePart = rest.split(" ")[0];
+      const ampm = rest.split(" ")[1];
       let hour = parseInt(hourPart);
       const minute = parseInt(minutePart);
 
-      if (ampm === 'PM' && hour !== 12) hour += 12;
-      if (ampm === 'AM' && hour === 12) hour = 0;
+      if (ampm === "PM" && hour !== 12) hour += 12;
+      if (ampm === "AM" && hour === 12) hour = 0;
 
       if (
         hour < now.getHours() ||
@@ -168,7 +183,7 @@ const Appointment = () => {
       }
     }
 
-    // Only hide booked time for that specific date
+    // Only hide booked times for the same date
     return !bookedAppointments.some(
       (b) => b.date?.trim() === formData.date && b.time?.trim() === time
     );
@@ -258,7 +273,7 @@ const Appointment = () => {
             </div>
 
             {/* Date Picker */}
-            <div>
+            <div ref={calendarRef}>
               <Label className="flex items-center gap-2">
                 <Calendar className="w-4 h-4" /> Preferred Date *
               </Label>
@@ -276,8 +291,9 @@ const Appointment = () => {
                   <Calendar className="w-5 h-5" />
                 </Button>
               </div>
+
               {showCalendar && (
-                <div className="mt-2 border rounded-md p-2 bg-card">
+                <div className="mt-2 border rounded-md p-2 bg-card shadow-lg absolute z-50">
                   <DayPicker
                     mode="single"
                     selected={
@@ -285,10 +301,12 @@ const Appointment = () => {
                         ? new Date(formData.date)
                         : undefined
                     }
-                    onSelect={(date) =>
-                      date &&
-                      setFormData({ ...formData, date: formatDate(date) })
-                    }
+                    onSelect={(date) => {
+                      if (date) {
+                        setFormData({ ...formData, date: formatDate(date) });
+                        setShowCalendar(false);
+                      }
+                    }}
                     disabled={{ before: new Date() }}
                   />
                 </div>
@@ -310,8 +328,8 @@ const Appointment = () => {
                   <SelectValue
                     placeholder={
                       availableTimes.length
-                        ? 'Select time'
-                        : 'No available time'
+                        ? "Select time"
+                        : "No available time"
                     }
                   />
                 </SelectTrigger>
@@ -322,7 +340,7 @@ const Appointment = () => {
                       value={time}
                       disabled={isBooked || !availableTimes.includes(time)}
                     >
-                      {time} {isBooked ? '(Booked)' : ''}
+                      {time} {isBooked ? "(Booked)" : ""}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -350,7 +368,7 @@ const Appointment = () => {
               disabled={loading}
               className="w-full bg-primary text-primary-foreground hover:bg-primary/90 font-semibold"
             >
-              {loading ? 'Submitting...' : 'Request Appointment'}
+              {loading ? "Submitting..." : "Request Appointment"}
             </Button>
           </form>
         </div>
