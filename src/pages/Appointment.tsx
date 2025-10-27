@@ -3,18 +3,26 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { Calendar, Clock, Scissors } from 'lucide-react';
 import { DayPicker } from 'react-day-picker';
 import 'react-day-picker/dist/style.css';
 
-const SHEET_URL = 'https://api.sheetbest.com/sheets/c7191ac9-a4f6-474f-bb74-d74d7de28566';
+const SHEET_URL =
+  'https://api.sheetbest.com/sheets/c7191ac9-a4f6-474f-bb74-d74d7de28566';
 
 const Appointment = () => {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [bookedAppointments, setBookedAppointments] = useState<any[]>([]);
+  const [showCalendar, setShowCalendar] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     phone: '',
@@ -24,7 +32,6 @@ const Appointment = () => {
     service: '',
     notes: '',
   });
-  const [showCalendar, setShowCalendar] = useState(false);
 
   const services = [
     'Signature Haircut',
@@ -36,24 +43,33 @@ const Appointment = () => {
   ];
 
   const timeSlots = [
-    '9:00 AM', '9:30 AM',
-    '10:00 AM', '10:30 AM',
-    '11:00 AM', '11:30 AM',
-    // skip 12:00 PM – 1:00 PM (lunch)
-    '1:00 PM', '1:30 PM',
-    '2:00 PM', '2:30 PM',
-    '3:00 PM', '3:30 PM',
-    '4:00 PM', '4:30 PM',
-    '5:00 PM', '5:30 PM',
-    '6:00 PM', '6:30 PM',
+    '9:00 AM',
+    '9:30 AM',
+    '10:00 AM',
+    '10:30 AM',
+    '11:00 AM',
+    '11:30 AM',
+    '1:00 PM',
+    '1:30 PM',
+    '2:00 PM',
+    '2:30 PM',
+    '3:00 PM',
+    '3:30 PM',
+    '4:00 PM',
+    '4:30 PM',
+    '5:00 PM',
+    '5:30 PM',
+    '6:00 PM',
+    '6:30 PM',
   ];
 
-  // ✅ Set today's date on initial render
-  useEffect(() => {
-    const today = new Date();
-    const formatted = formatDate(today);
-    setFormData(prev => ({ ...prev, date: formatted }));
-  }, []);
+  // ✅ Format date as YYYY-MM-DD
+  const formatDate = (date: Date) => {
+    const year = date.getFullYear();
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    const day = date.getDate().toString().padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
 
   // ✅ Fetch booked appointments
   useEffect(() => {
@@ -63,9 +79,24 @@ const Appointment = () => {
       .catch(err => console.error(err));
   }, []);
 
+  // ✅ Set today as default date
+  useEffect(() => {
+    if (!formData.date) {
+      const today = formatDate(new Date());
+      setFormData(prev => ({ ...prev, date: today }));
+    }
+  }, [formData.date]);
+
+  // ✅ Handle submit
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.name || !formData.phone || !formData.date || !formData.time || !formData.service) {
+    if (
+      !formData.name ||
+      !formData.phone ||
+      !formData.date ||
+      !formData.time ||
+      !formData.service
+    ) {
       toast({
         title: 'Missing Information',
         description: 'Please fill in all required fields',
@@ -91,7 +122,7 @@ const Appointment = () => {
         name: '',
         phone: '',
         email: '',
-        date: formatDate(new Date()), // keep today’s date after booking
+        date: formatDate(new Date()),
         time: '',
         service: '',
         notes: '',
@@ -99,7 +130,6 @@ const Appointment = () => {
 
       const updated = await fetch(SHEET_URL).then(res => res.json());
       setBookedAppointments(updated);
-
     } catch (error) {
       console.error(error);
       toast({
@@ -112,22 +142,14 @@ const Appointment = () => {
     }
   };
 
-  // ✅ Format date to YYYY-MM-DD
-  const formatDate = (date: Date) => {
-    const year = date.getFullYear();
-    const month = (date.getMonth() + 1).toString().padStart(2, '0');
-    const day = date.getDate().toString().padStart(2, '0');
-    return `${year}-${month}-${day}`;
-  };
-
-  // ✅ Corrected availableTimes filter
+  // ✅ Compute available times
   const availableTimes = timeSlots.filter(time => {
     if (!formData.date) return true;
 
     const now = new Date();
     const selectedDate = new Date(formData.date);
 
-    // If selected date is today → hide past times only
+    // Hide past times for today
     if (formatDate(selectedDate) === formatDate(now)) {
       const [hourPart, rest] = time.split(':');
       const minutePart = rest.split(' ')[0];
@@ -138,79 +160,117 @@ const Appointment = () => {
       if (ampm === 'PM' && hour !== 12) hour += 12;
       if (ampm === 'AM' && hour === 12) hour = 0;
 
-      // Hide past times
-      if (hour < now.getHours() || (hour === now.getHours() && minute <= now.getMinutes())) {
+      if (
+        hour < now.getHours() ||
+        (hour === now.getHours() && minute <= now.getMinutes())
+      ) {
         return false;
       }
     }
 
-    // Hide already booked times
+    // Hide only booked times for that date
     return !bookedAppointments.some(
       booking => booking.date === formData.date && booking.time === time
     );
   });
 
-  // ✅ Compute disabled days
-  const disabledDays = bookedAppointments.map(b => new Date(b.date));
+  // ✅ Get all times for display (mark booked)
+  const allTimes = timeSlots.map(time => {
+    const isBooked = bookedAppointments.some(
+      booking => booking.date === formData.date && booking.time === time
+    );
+    return { time, isBooked };
+  });
 
   return (
     <div className="min-h-screen pt-20">
       <section className="py-20 bg-secondary">
         <div className="container mx-auto px-4 text-center animate-fade-in">
           <Scissors className="w-16 h-16 text-primary mx-auto mb-6" />
-          <h1 className="text-5xl md:text-6xl font-bold text-foreground mb-6">Book Your Appointment</h1>
-          <p className="text-xl text-muted-foreground">Schedule your visit and experience premium grooming</p>
+          <h1 className="text-5xl md:text-6xl font-bold text-foreground mb-6">
+            Book Your Appointment
+          </h1>
+          <p className="text-xl text-muted-foreground">
+            Schedule your visit and experience premium grooming
+          </p>
         </div>
       </section>
 
       <section className="py-20 bg-background">
         <div className="container mx-auto px-4 max-w-2xl">
-          <form onSubmit={handleSubmit} className="bg-card border border-border rounded-lg p-8 animate-fade-in space-y-6">
-            
+          <form
+            onSubmit={handleSubmit}
+            className="bg-card border border-border rounded-lg p-8 animate-fade-in space-y-6"
+          >
             <div>
               <Label htmlFor="name">Full Name *</Label>
-              <Input id="name" type="text" placeholder="John Doe"
+              <Input
+                id="name"
+                type="text"
+                placeholder="John Doe"
                 value={formData.name}
-                onChange={e => setFormData({ ...formData, name: e.target.value })}
-                required className="mt-2" />
+                onChange={e =>
+                  setFormData({ ...formData, name: e.target.value })
+                }
+                required
+                className="mt-2"
+              />
             </div>
 
             <div>
               <Label htmlFor="phone">Phone Number *</Label>
-              <Input id="phone" type="tel" placeholder="(123) 456-7890"
+              <Input
+                id="phone"
+                type="tel"
+                placeholder="(123) 456-7890"
                 value={formData.phone}
-                onChange={e => setFormData({ ...formData, phone: e.target.value })}
-                required className="mt-2" />
+                onChange={e =>
+                  setFormData({ ...formData, phone: e.target.value })
+                }
+                required
+                className="mt-2"
+              />
             </div>
 
             <div>
               <Label htmlFor="email">Email (Optional)</Label>
-              <Input id="email" type="email" placeholder="john@example.com"
+              <Input
+                id="email"
+                type="email"
+                placeholder="john@example.com"
                 value={formData.email}
-                onChange={e => setFormData({ ...formData, email: e.target.value })}
-                className="mt-2" />
+                onChange={e =>
+                  setFormData({ ...formData, email: e.target.value })
+                }
+                className="mt-2"
+              />
             </div>
 
             <div>
               <Label htmlFor="service">Service *</Label>
               <Select
                 value={formData.service}
-                onValueChange={value => setFormData({ ...formData, service: value })}
+                onValueChange={value =>
+                  setFormData({ ...formData, service: value })
+                }
               >
                 <SelectTrigger className="mt-2">
                   <SelectValue placeholder="Select a service" />
                 </SelectTrigger>
                 <SelectContent>
                   {services.map(s => (
-                    <SelectItem key={s} value={s}>{s}</SelectItem>
+                    <SelectItem key={s} value={s}>
+                      {s}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
 
+            {/* Date Picker */}
             <div>
               <Label className="flex items-center gap-2">
-                <Calendar className="w-4 h-4"/> Preferred Date *
+                <Calendar className="w-4 h-4" /> Preferred Date *
               </Label>
               <div className="flex items-center gap-2 mt-2">
                 <Input
@@ -218,42 +278,64 @@ const Appointment = () => {
                   value={formData.date}
                   readOnly
                   required
+                  className="cursor-not-allowed bg-muted"
                 />
-                <Button type="button" onClick={() => setShowCalendar(prev => !prev)}>
+                <Button
+                  type="button"
+                  onClick={() => setShowCalendar(prev => !prev)}
+                >
                   <Calendar className="w-5 h-5" />
                 </Button>
               </div>
-
               {showCalendar && (
                 <div className="mt-2 border rounded-md p-2 bg-card">
                   <DayPicker
                     mode="single"
                     selected={
-                      formData.date && !isNaN(new Date(formData.date).getTime())
+                      formData.date &&
+                      !isNaN(new Date(formData.date).getTime())
                         ? new Date(formData.date)
                         : undefined
                     }
-                    onSelect={date => date && setFormData({ ...formData, date: formatDate(date) })}
-                    disabled={[{ before: new Date() }, ...disabledDays]}
+                    onSelect={date =>
+                      date &&
+                      setFormData({ ...formData, date: formatDate(date) })
+                    }
+                    disabled={{ before: new Date() }}
                   />
                 </div>
               )}
             </div>
 
+            {/* Time Picker */}
             <div>
               <Label className="flex items-center gap-2">
-                <Clock className="w-4 h-4"/> Preferred Time *
+                <Clock className="w-4 h-4" /> Preferred Time *
               </Label>
               <Select
                 value={formData.time}
-                onValueChange={value => setFormData({ ...formData, time: value })}
+                onValueChange={value =>
+                  setFormData({ ...formData, time: value })
+                }
               >
                 <SelectTrigger className="mt-2">
-                  <SelectValue placeholder={availableTimes.length ? "Select time" : "No available time"} />
+                  <SelectValue
+                    placeholder={
+                      availableTimes.length
+                        ? 'Select time'
+                        : 'No available time'
+                    }
+                  />
                 </SelectTrigger>
                 <SelectContent>
-                  {availableTimes.map(time => (
-                    <SelectItem key={time} value={time}>{time}</SelectItem>
+                  {allTimes.map(({ time, isBooked }) => (
+                    <SelectItem
+                      key={time}
+                      value={time}
+                      disabled={isBooked || !availableTimes.includes(time)}
+                    >
+                      {time} {isBooked ? '(Booked)' : ''}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -265,7 +347,9 @@ const Appointment = () => {
                 id="notes"
                 placeholder="Any specific requests or notes..."
                 value={formData.notes}
-                onChange={e => setFormData({ ...formData, notes: e.target.value })}
+                onChange={e =>
+                  setFormData({ ...formData, notes: e.target.value })
+                }
                 rows={4}
                 className="mt-2"
               />
