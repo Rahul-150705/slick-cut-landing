@@ -14,10 +14,7 @@ const SHEET_URL = 'https://api.sheetbest.com/sheets/c7191ac9-a4f6-474f-bb74-d74d
 const Appointment = () => {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
-  const [loadingSlots, setLoadingSlots] = useState(true);
   const [bookedAppointments, setBookedAppointments] = useState<any[]>([]);
-  const [showCalendar, setShowCalendar] = useState(false);
-
   const [formData, setFormData] = useState({
     name: '',
     phone: '',
@@ -27,6 +24,7 @@ const Appointment = () => {
     service: '',
     notes: '',
   });
+  const [showCalendar, setShowCalendar] = useState(false);
 
   const services = [
     'Signature Haircut',
@@ -41,6 +39,7 @@ const Appointment = () => {
     '9:00 AM', '9:30 AM',
     '10:00 AM', '10:30 AM',
     '11:00 AM', '11:30 AM',
+    // skip 12:00 PM – 1:00 PM (lunch)
     '1:00 PM', '1:30 PM',
     '2:00 PM', '2:30 PM',
     '3:00 PM', '3:30 PM',
@@ -49,7 +48,7 @@ const Appointment = () => {
     '6:00 PM', '6:30 PM',
   ];
 
-  // Helper to format Date in YYYY-MM-DD
+  // Format date as YYYY-MM-DD
   const formatDate = (date: Date) => {
     const year = date.getFullYear();
     const month = (date.getMonth() + 1).toString().padStart(2, '0');
@@ -57,29 +56,18 @@ const Appointment = () => {
     return `${year}-${month}-${day}`;
   };
 
-  // Helper to convert 12h to 24h
-  const convertTo24Hour = (timeStr: string) => {
-    const [time, modifier] = timeStr.split(' ');
-    let [hours, minutes] = time.split(':');
-    if (modifier === 'PM' && hours !== '12') hours = String(+hours + 12);
-    if (modifier === 'AM' && hours === '12') hours = '00';
-    return `${hours.padStart(2, '0')}:${minutes}`;
-  };
-
   // Fetch booked appointments
   useEffect(() => {
-    setLoadingSlots(true);
     fetch(SHEET_URL)
       .then(res => res.json())
       .then(data => setBookedAppointments(data))
-      .catch(err => console.error(err))
-      .finally(() => setLoadingSlots(false));
+      .catch(err => console.error(err));
   }, []);
 
-  // Set today's date by default
+  // Set today’s date as default
   useEffect(() => {
-    const today = formatDate(new Date());
-    setFormData(prev => ({ ...prev, date: today }));
+    const today = new Date();
+    setFormData(prev => ({ ...prev, date: formatDate(today) }));
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -110,7 +98,7 @@ const Appointment = () => {
         name: '',
         phone: '',
         email: '',
-        date: formatDate(new Date()), // reset to today
+        date: formatDate(new Date()),
         time: '',
         service: '',
         notes: '',
@@ -118,6 +106,7 @@ const Appointment = () => {
 
       const updated = await fetch(SHEET_URL).then(res => res.json());
       setBookedAppointments(updated);
+
     } catch (error) {
       console.error(error);
       toast({
@@ -130,44 +119,56 @@ const Appointment = () => {
     }
   };
 
-  // Filter available time slots
+  // Filter available times for selected date
   const availableTimes = timeSlots.filter(time => {
     if (!formData.date) return true;
 
-    const [hourStr, minutePart] = time.split(':');
-    const minute = parseInt(minutePart);
-    const ampm = time.split(' ')[1];
-    let hour = parseInt(hourStr);
-    if (ampm === 'PM' && hour !== 12) hour += 12;
-    if (ampm === 'AM' && hour === 12) hour = 0;
-
-    const slotDateTime = new Date(`${formData.date}T${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}:00`);
     const now = new Date();
+    const selectedDate = new Date(formData.date);
 
-    // Hide past times if it's today
-    if (slotDateTime < now) return false;
+    // Disable past times for today
+    if (formatDate(selectedDate) === formatDate(now)) {
+      const [hourStr, minuteStr] = time.split(':');
+      const minute = parseInt(minuteStr);
+      const ampm = time.split(' ')[1];
+      let hour = parseInt(hourStr);
+      if (ampm === 'PM' && hour !== 12) hour += 12;
+      if (ampm === 'AM' && hour === 12) hour = 0;
 
-    // Hide future booked times only
-    return !bookedAppointments.some(booking => {
-      const bookingDateTime = new Date(`${booking.date}T${convertTo24Hour(booking.time)}`);
-      return bookingDateTime.getTime() === slotDateTime.getTime();
-    });
+      if (hour < now.getHours() || (hour === now.getHours() && minute <= now.getMinutes())) {
+        return false;
+      }
+    }
+
+    // Disable already booked times for this date
+    return !bookedAppointments.some(
+      booking => booking.date === formData.date && booking.time === time
+    );
   });
+
+  // Disabled past days
+  const disabledDays = [{ before: new Date() }];
 
   return (
     <div className="min-h-screen pt-20">
       <section className="py-20 bg-secondary">
         <div className="container mx-auto px-4 text-center animate-fade-in">
           <Scissors className="w-16 h-16 text-primary mx-auto mb-6" />
-          <h1 className="text-5xl md:text-6xl font-bold text-foreground mb-6">Book Your Appointment</h1>
-          <p className="text-xl text-muted-foreground">Schedule your visit and experience premium grooming</p>
+          <h1 className="text-5xl md:text-6xl font-bold text-foreground mb-6">
+            Book Your Appointment
+          </h1>
+          <p className="text-xl text-muted-foreground">
+            Schedule your visit and experience premium grooming
+          </p>
         </div>
       </section>
 
       <section className="py-20 bg-background">
         <div className="container mx-auto px-4 max-w-2xl">
-          <form onSubmit={handleSubmit} className="bg-card border border-border rounded-lg p-8 animate-fade-in space-y-6">
-            
+          <form
+            onSubmit={handleSubmit}
+            className="bg-card border border-border rounded-lg p-8 animate-fade-in space-y-6"
+          >
             <div>
               <Label htmlFor="name">Full Name *</Label>
               <Input
@@ -217,19 +218,24 @@ const Appointment = () => {
                 </SelectTrigger>
                 <SelectContent>
                   {services.map(s => (
-                    <SelectItem key={s} value={s}>{s}</SelectItem>
+                    <SelectItem key={s} value={s}>
+                      {s}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
 
+            {/* Calendar Section */}
             <div>
-              <Label className="flex items-center gap-2"><Calendar className="w-4 h-4"/> Select Date *</Label>
+              <Label className="flex items-center gap-2">
+                <Calendar className="w-4 h-4" /> Select Date *
+              </Label>
               <div className="flex items-center gap-2 mt-2">
                 <Button type="button" onClick={() => setShowCalendar(prev => !prev)}>
                   <Calendar className="w-5 h-5" />
                 </Button>
-                <span className="text-sm text-muted-foreground">{formData.date}</span>
+                <span className="text-sm">{formData.date}</span>
               </div>
               {showCalendar && (
                 <div className="mt-2 border rounded-md p-2 bg-card">
@@ -237,31 +243,35 @@ const Appointment = () => {
                     mode="single"
                     selected={formData.date ? new Date(formData.date) : undefined}
                     onSelect={date => date && setFormData({ ...formData, date: formatDate(date) })}
-                    disabled={{ before: new Date() }}
+                    disabled={disabledDays}
                   />
                 </div>
               )}
             </div>
 
             <div>
-              <Label className="flex items-center gap-2"><Clock className="w-4 h-4"/> Select Time *</Label>
-              {loadingSlots ? (
-                <p className="text-muted-foreground text-sm mt-2">Fetching slots...</p>
-              ) : (
-                <Select
-                  value={formData.time}
-                  onValueChange={value => setFormData({ ...formData, time: value })}
-                >
-                  <SelectTrigger className="mt-2">
-                    <SelectValue placeholder={availableTimes.length ? "Select time" : "No available time"} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {availableTimes.map(time => (
-                      <SelectItem key={time} value={time}>{time}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              )}
+              <Label className="flex items-center gap-2">
+                <Clock className="w-4 h-4" /> Preferred Time *
+              </Label>
+              <Select
+                value={formData.time}
+                onValueChange={value => setFormData({ ...formData, time: value })}
+              >
+                <SelectTrigger className="mt-2">
+                  <SelectValue
+                    placeholder={
+                      availableTimes.length ? 'Select time' : 'No available time'
+                    }
+                  />
+                </SelectTrigger>
+                <SelectContent>
+                  {availableTimes.map(time => (
+                    <SelectItem key={time} value={time}>
+                      {time}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             <div>
