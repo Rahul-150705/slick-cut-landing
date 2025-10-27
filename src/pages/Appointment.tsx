@@ -33,14 +33,13 @@ const Appointment = () => {
     notes: '',
   });
 
-  // ✅ Each service now has duration (in minutes)
   const services = [
-    { name: 'Signature Haircut', duration: 40 },
-    { name: 'Fade & Taper', duration: 45 },
-    { name: 'Beard Grooming', duration: 25 },
-    { name: 'Hot Towel Shave', duration: 30 },
-    { name: 'Kids Cut', duration: 35 },
-    { name: 'Haircut & Beard Combo', duration: 60 },
+    'Signature Haircut',
+    'Fade & Taper',
+    'Beard Grooming',
+    'Hot Towel Shave',
+    'Kids Cut',
+    'Haircut & Beard Combo',
   ];
 
   const timeSlots = [
@@ -64,6 +63,7 @@ const Appointment = () => {
     '6:30 PM',
   ];
 
+  // Format date as YYYY-MM-DD
   const formatDate = (date: Date) => {
     const year = date.getFullYear();
     const month = (date.getMonth() + 1).toString().padStart(2, '0');
@@ -71,13 +71,15 @@ const Appointment = () => {
     return `${year}-${month}-${day}`;
   };
 
+  // Fetch booked appointments
   useEffect(() => {
     fetch(SHEET_URL)
       .then((res) => res.json())
-      .then((data) => setBookedAppointments(data))
+      .then((data) => setBookedAppointments(Array.isArray(data) ? data : []))
       .catch((err) => console.error(err));
   }, []);
 
+  // Set today's date by default
   useEffect(() => {
     if (!formData.date) {
       const today = formatDate(new Date());
@@ -85,6 +87,7 @@ const Appointment = () => {
     }
   }, [formData.date]);
 
+  // Handle submit
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (
@@ -102,15 +105,12 @@ const Appointment = () => {
       return;
     }
 
-    const selectedService = services.find((s) => s.name === formData.service);
-    const duration = selectedService ? selectedService.duration : 30;
-
     setLoading(true);
     try {
       await fetch(SHEET_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...formData, duration }),
+        body: JSON.stringify(formData),
       });
 
       toast({
@@ -142,57 +142,48 @@ const Appointment = () => {
     }
   };
 
-  // ✅ Function to convert time string ("9:30 AM") → Date object
-  const toDateTime = (dateStr: string, timeStr: string) => {
-    const [hourStr, rest] = timeStr.split(':');
-    const [minuteStr, ampm] = rest.split(' ');
-    let hour = parseInt(hourStr);
-    const minute = parseInt(minuteStr);
-    if (ampm === 'PM' && hour !== 12) hour += 12;
-    if (ampm === 'AM' && hour === 12) hour = 0;
-    const d = new Date(dateStr);
-    d.setHours(hour, minute, 0, 0);
-    return d;
-  };
-
-  // ✅ Smart available times logic
+  // Compute available times
   const availableTimes = timeSlots.filter((time) => {
     if (!formData.date) return true;
+
     const now = new Date();
     const selectedDate = new Date(formData.date);
 
-    const selectedService = services.find((s) => s.name === formData.service);
-    const selectedDuration = selectedService ? selectedService.duration : 0;
-
-    const slotTime = toDateTime(formData.date, time);
-
     // Hide past times for today
-    if (formatDate(selectedDate) === formatDate(now) && slotTime < now) {
-      return false;
+    if (formatDate(selectedDate) === formatDate(now)) {
+      const [hourPart, rest] = time.split(':');
+      const minutePart = rest.split(' ')[0];
+      const ampm = rest.split(' ')[1];
+      let hour = parseInt(hourPart);
+      const minute = parseInt(minutePart);
+
+      if (ampm === 'PM' && hour !== 12) hour += 12;
+      if (ampm === 'AM' && hour === 12) hour = 0;
+
+      if (
+        hour < now.getHours() ||
+        (hour === now.getHours() && minute <= now.getMinutes())
+      ) {
+        return false;
+      }
     }
 
-    // Check overlap with booked appointments
-    return !bookedAppointments.some((b) => {
-      const bookedStart = toDateTime(b.date, b.time);
-      const bookedService = services.find((s) => s.name === b.service);
-      const bookedDuration = bookedService ? bookedService.duration : 30;
-      const bookedEnd = new Date(bookedStart.getTime() + bookedDuration * 60000);
-      const slotEnd = new Date(slotTime.getTime() + selectedDuration * 60000);
-      return (
-        b.date === formData.date &&
-        bookedStart < slotEnd &&
-        slotTime < bookedEnd
-      );
-    });
+    // Only hide booked time for that specific date
+    return !bookedAppointments.some(
+      (b) => b.date?.trim() === formData.date && b.time?.trim() === time
+    );
   });
 
   const allTimes = timeSlots.map((time) => {
-    const isBooked = !availableTimes.includes(time);
+    const isBooked = bookedAppointments.some(
+      (b) => b.date?.trim() === formData.date && b.time?.trim() === time
+    );
     return { time, isBooked };
   });
 
   return (
     <div className="min-h-screen pt-20">
+      {/* Hero */}
       <section className="py-20 bg-secondary">
         <div className="container mx-auto px-4 text-center animate-fade-in">
           <Scissors className="w-16 h-16 text-primary mx-auto mb-6" />
@@ -205,6 +196,7 @@ const Appointment = () => {
         </div>
       </section>
 
+      {/* Form */}
       <section className="py-20 bg-background">
         <div className="container mx-auto px-4 max-w-2xl">
           <form
@@ -243,21 +235,6 @@ const Appointment = () => {
               />
             </div>
 
-            {/* Email */}
-            <div>
-              <Label htmlFor="email">Email (Optional)</Label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="john@example.com"
-                value={formData.email}
-                onChange={(e) =>
-                  setFormData({ ...formData, email: e.target.value })
-                }
-                className="mt-2"
-              />
-            </div>
-
             {/* Service */}
             <div>
               <Label htmlFor="service">Service *</Label>
@@ -272,8 +249,8 @@ const Appointment = () => {
                 </SelectTrigger>
                 <SelectContent>
                   {services.map((s) => (
-                    <SelectItem key={s.name} value={s.name}>
-                      {s.name}
+                    <SelectItem key={s} value={s}>
+                      {s}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -290,7 +267,6 @@ const Appointment = () => {
                   type="text"
                   value={formData.date}
                   readOnly
-                  required
                   className="cursor-not-allowed bg-muted"
                 />
                 <Button
@@ -305,8 +281,7 @@ const Appointment = () => {
                   <DayPicker
                     mode="single"
                     selected={
-                      formData.date &&
-                      !isNaN(new Date(formData.date).getTime())
+                      formData.date && !isNaN(Date.parse(formData.date))
                         ? new Date(formData.date)
                         : undefined
                     }
@@ -345,7 +320,7 @@ const Appointment = () => {
                     <SelectItem
                       key={time}
                       value={time}
-                      disabled={isBooked}
+                      disabled={isBooked || !availableTimes.includes(time)}
                     >
                       {time} {isBooked ? '(Booked)' : ''}
                     </SelectItem>
@@ -359,7 +334,7 @@ const Appointment = () => {
               <Label htmlFor="notes">Special Requests (Optional)</Label>
               <Textarea
                 id="notes"
-                placeholder="Any specific requests or notes..."
+                placeholder="Any specific requests..."
                 value={formData.notes}
                 onChange={(e) =>
                   setFormData({ ...formData, notes: e.target.value })
@@ -372,7 +347,7 @@ const Appointment = () => {
             <Button
               type="submit"
               size="lg"
-              disabled={loading || availableTimes.length === 0}
+              disabled={loading}
               className="w-full bg-primary text-primary-foreground hover:bg-primary/90 font-semibold"
             >
               {loading ? 'Submitting...' : 'Request Appointment'}
