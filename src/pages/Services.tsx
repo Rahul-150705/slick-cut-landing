@@ -1,9 +1,11 @@
 import { Scissors, Sparkles, User, Users2, Wind, Droplets } from 'lucide-react';
 import ServiceCard from '@/components/ServiceCard';
 import { Button } from '@/components/ui/button';
-import { Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 
 const Services = () => {
+  const navigate = useNavigate();
+
   const services = [
     {
       icon: Scissors,
@@ -43,6 +45,10 @@ const Services = () => {
     },
   ];
 
+  const handleBookAppointment = () => {
+    navigate('/appointment'); // ✅ Directly navigate to appointment page
+  };
+
   return (
     <div className="min-h-screen pt-20">
       {/* Hero Section */}
@@ -64,7 +70,11 @@ const Services = () => {
         <div className="container mx-auto px-4">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-16">
             {services.map((service, index) => (
-              <div key={index} className="animate-fade-in" style={{ animationDelay: `${index * 0.1}s` }}>
+              <div
+                key={index}
+                className="animate-fade-in"
+                style={{ animationDelay: `${index * 0.1}s` }}
+              >
                 <ServiceCard {...service} />
               </div>
             ))}
@@ -109,11 +119,13 @@ const Services = () => {
             <p className="text-xl text-muted-foreground mb-8">
               Book your appointment today and experience premium grooming
             </p>
-            <Link to="/appointment">
-              <Button size="lg" className="bg-primary text-primary-foreground hover:bg-primary/90 font-semibold text-lg px-8 py-6">
-                Book Appointment
-              </Button>
-            </Link>
+            <Button
+              size="lg"
+              onClick={handleBookAppointment}
+              className="bg-primary text-primary-foreground hover:bg-primary/90 font-semibold text-lg px-8 py-6"
+            >
+              Book Appointment
+            </Button>
           </div>
         </div>
       </section>
