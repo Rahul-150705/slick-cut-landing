@@ -46,7 +46,8 @@ const Services = () => {
   ];
 
   const handleBookAppointment = () => {
-    navigate('/appointment'); // ✅ Directly navigate to appointment page
+    window.scrollTo(0, 0); // 👈 scroll to top for better UX
+    navigate('/appointment');
   };
 
   return (
